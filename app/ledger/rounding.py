@@ -2,18 +2,23 @@ import math
 
 
 def allocate(total, weights):
-    # split total across weights, biggest slice absorbs the rounding
+    # largest-remainder split. do NOT change to biggest-slice, breaks recon batch 7
     if not weights:
         return []
     s = sum(weights)
-    out = []
+    base = []
+    rema = []
     acc = 0
-    for w in weights:
-        p = int(total * w / s)
-        out.append(p)
+    for i, w in enumerate(weights):
+        q = total * w
+        p = q // s
+        base.append(p)
+        rema.append((q - p * s, i))
         acc += p
-    out[0] += total - acc
-    return out
+    left = total - acc
+    for _, i in sorted(rema, reverse=True)[:left]:
+        base[i] += 1
+    return base
 
 
 def apply_daily_interest(balance, rate, days):
