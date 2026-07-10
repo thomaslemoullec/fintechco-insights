@@ -13,15 +13,20 @@ provider "google" {
   region  = var.region
 }
 
+# CMEK for the statements bucket (AC2 — encryption at rest with a customer-managed key).
+resource "google_kms_key_ring" "statements" {
+  name     = "statements-keyring"
+  location = "us"
+  project  = var.project_id
+}
+
+resource "google_kms_crypto_key" "statements" {
+  name            = "statements-cmek"
+  key_ring        = google_kms_key_ring.statements.id
+  rotation_period = "7776000s" # 90 days
+}
+
 # Bucket for exported customer statements. Statements contain NPI (see PAY ticket AC2).
-#
-# DEMO-SEED 3a (no CMEK): this bucket has NO customer-managed encryption key. It falls
-#   back to Google-managed keys. AC2 requires CMEK. tfsec flags this
-#   (google-storage-bucket-encryption-customer-key). The fix adds an `encryption` block.
-#
-# DEMO-SEED 3b (over-broad IAM): the binding below grants read to `allUsers` — the
-#   statements bucket is effectively PUBLIC. AC2 requires least privilege (only the
-#   statements-service identity). tfsec flags this (google-storage-no-public-access).
 resource "google_storage_bucket" "statements" {
   name                        = "fintechco-customer-statements"
   project                     = var.project_id
@@ -29,13 +34,15 @@ resource "google_storage_bucket" "statements" {
   uniform_bucket_level_access = true
   force_destroy               = false
 
-  # DEMO-SEED 3a: no CMEK key is configured on this bucket. Falls back to a
-  #   Google-managed key, which does not satisfy AC2. The fix adds a CMEK encryption block.
+  # AC2: encrypt at rest with our customer-managed key.
+  encryption {
+    default_kms_key_name = google_kms_crypto_key.statements.id
+  }
 }
 
-# DEMO-SEED 3b: public/over-broad IAM binding on a bucket holding customer NPI.
-resource "google_storage_bucket_iam_member" "statements_public_read" {
+# AC2: least-privilege access — only the statements-service identity may read/write.
+resource "google_storage_bucket_iam_member" "statements_service_rw" {
   bucket = google_storage_bucket.statements.name
-  role   = "roles/storage.objectViewer"
-  member = "allUsers"
+  role   = "roles/storage.objectUser"
+  member = "serviceAccount:${var.statements_service_sa}"
 }

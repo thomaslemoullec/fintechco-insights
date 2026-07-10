@@ -23,10 +23,8 @@ logger = logging.getLogger("statements")
 
 router = APIRouter()
 
-# DEMO-SEED 4 (planted secret / CWE-798): a hardcoded credential in source. The
-# pre-commit secret scan (gitleaks) blocks this at commit time (Beat 9). The fix
-# is to read it from the environment / Secret Manager.
-STATEMENTS_SIGNING_KEY = "sk_live_4eC39HqLyjWDarjtT1zdp7dc0aB1cD2eF3gH"
+# Signing key comes from the environment / Secret Manager — never hardcoded.
+STATEMENTS_SIGNING_KEY = os.environ.get("STATEMENTS_SIGNING_KEY", "")
 
 STATEMENTS_BUCKET = os.environ.get("STATEMENTS_BUCKET", "fintechco-customer-statements")
 EXPORT_DIR = os.environ.get("EXPORT_DIR", "exports")
@@ -51,10 +49,9 @@ def search_account_transactions(
         if account is None:
             raise HTTPException(status_code=404, detail="account not found")
 
-        # DEMO-SEED 1 (IDOR / BOLA, CWE-639): the handler serves transactions for
-        # `account_id` taken straight from the URL and NEVER checks that the account
-        # belongs to `caller.customer_id`. Any authenticated customer can read any
-        # account's transactions. Violates AC1. The fix is an ownership check → 403.
+        # AC1: authorise — the caller may only access accounts they own.
+        if account["customer_id"] != caller.customer_id:
+            raise HTTPException(status_code=403, detail="forbidden")
         rows = db.search_transactions(conn, account_id, start, end, merchant)
         return {
             "account_id": account_id,
@@ -83,18 +80,14 @@ def export_statement(
         account = db.get_account(conn, account_id)
         if account is None:
             raise HTTPException(status_code=404, detail="account not found")
-        customer = db.get_customer(conn, account["customer_id"])
+        # AC1: authorise — the caller may only export accounts they own.
+        if account["customer_id"] != caller.customer_id:
+            raise HTTPException(status_code=403, detail="forbidden")
 
-        # DEMO-SEED 1 (IDOR / BOLA, CWE-639): same missing ownership check on export —
-        # any customer can export any account's statement. Violates AC1.
-
-        # DEMO-SEED 2 (NPI in logs, CWE-532): logs the FULL account number and the
-        # customer's name at INFO. Statement data is NPI. Violates AC3. The fix is to
-        # log a masked identifier only (e.g. last 4).
+        # AC3: no NPI in logs — masked identifier only (last 4), never the customer name.
         logger.info(
-            "Exporting statement for account %s (%s) requested by customer %s",
-            account["account_number"],
-            customer["name"],
+            "Exporting statement for account ****%s requested by customer %s",
+            account["account_number"][-4:],
             caller.customer_id,
         )
 
