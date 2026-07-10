@@ -80,7 +80,10 @@ the exact thing you type, what the room sees, rough time, the one-line **Say**, 
 - **Fallback:** run `.githooks/pre-commit` manually to show the block, then remove the secret and re-run.
 
 ## Beat 10 — Open a PR: full CI + AI review + human gate · ~50s · CI
-- **Do:** *"Open a pull request with a clear summary and the security notes."* (`gh pr create` or via GitHub UI)
+- **Do:** *"Open a pull request with a clear summary and the security notes."*
+  The PR base is **`demo-start`** (the seeded state), so the diff is your fix and CI has
+  something to check: `gh pr create --base demo-start --fill` (or set base in the UI).
+  *(`main` is the already-fixed reference — don't target it, the diff would be empty.)*
 - **Show:** required checks side-by-side — **tests / ruff / gitleaks / tfsec / semgrep / Claude security review** — under **branch protection**: no merge without all green **and a human approver**.
 - **Say:** *"An independent security pass on every change, and a human owns the merge — that's your SOX change-control, approved and evidenced."*
 - **▶ Exec so-what:** "Your change-control regime, automated: nothing merges without checks passing and a named human approving — evidence captured for examiners." (CTO + Platform/Infra)

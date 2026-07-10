@@ -60,6 +60,11 @@ protection rule** for `demo-start` (the PR base during the demo) — and optiona
   `SAST (semgrep)`, `Claude security review`
 - ✅ Do not allow bypassing the above settings
 
+During the demo you branch from `demo-start`, fix live, and open the PR **against
+`demo-start`** (`gh pr create --base demo-start`). `main` is the fixed reference — don't
+target it. (Optional: `gh repo edit --default-branch demo-start` if you'd rather PRs
+default to it; the repo page will then show the seeded code, which the README flags.)
+
 ### 5. Local tooling + preflight
 ```bash
 make setup          # venv + deps, registers .githooks, seeds the DB
