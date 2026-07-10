@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Deterministic pre-commit gates (Beat 9): lint + secret scan + IaC scan.
+# Installed by `make setup` via `git config core.hooksPath .githooks`.
+#
+# These are the fast, local copy of the checks that ALSO run (enforced) in CI under
+# branch protection. A skipped local hook can't merge — CI is the gate of record.
+set -uo pipefail
+root="$(git rev-parse --show-toplevel)"
+cd "$root" || exit 1
+
+# Make the demo's tools findable regardless of how the shell was launched.
+export PATH="$root/.venv/bin:$HOME/.local/bin:$PATH"
+
+have() { command -v "$1" >/dev/null 2>&1; }
+fail=0
+
+echo "[pre-commit] ruff (lint)…"
+if have ruff; then
+  ruff check app tests scripts || fail=1
+else
+  echo "  ! ruff not found — skipping (install: pip install ruff)"
+fi
+
+echo "[pre-commit] gitleaks (secret scan)…"
+if have gitleaks; then
+  # Scan working-tree files so a hardcoded secret is caught even if not freshly added.
+  gitleaks detect --no-git --source . --redact -v || {
+    echo "  ✗ gitleaks found a secret — commit blocked. Move it to Secret Manager / env."
+    fail=1
+  }
+else
+  echo "  ! gitleaks not found — skipping (see SETUP.md)"
+fi
+
+echo "[pre-commit] tfsec (IaC scan)…"
+if have tfsec; then
+  tfsec infra/terraform --minimum-severity HIGH --no-color || {
+    echo "  ✗ tfsec found a HIGH infra issue — commit blocked."
+    fail=1
+  }
+else
+  echo "  ! tfsec not found — skipping (see SETUP.md)"
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo ""
+  echo "pre-commit BLOCKED. Fix the issues above, or (not for the demo) bypass with --no-verify."
+  echo "Note: the same checks run enforced in CI, so --no-verify cannot merge."
+  exit 1
+fi
+echo "[pre-commit] all gates green."
+exit 0

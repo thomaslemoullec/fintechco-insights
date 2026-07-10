@@ -1,0 +1,8 @@
+-r requirements.txt
+# Test + local verification stack.
+pytest>=8.0
+httpx>=0.27        # FastAPI TestClient
+faker>=25.0        # fake customers/accounts/transactions — NO real PII
+ruff>=0.5          # lint (pre-commit hook + CI)
+checkov>=3.0       # IaC scan alternative to tfsec (pip-installable)
+detect-secrets>=1.5

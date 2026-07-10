@@ -1,0 +1,28 @@
+# --- Internal presenter materials — NEVER commit or push ---
+_internal/
+claude_code_demo_kit/
+*.zip
+
+# --- Claude Code project-local (personal, not shared) ---
+.claude/settings.local.json
+
+# --- Python ---
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# --- Generated at runtime (restored by `make reset`) ---
+data/*.db
+exports/
+audit.log
+
+# --- Terraform local state (never in a demo) ---
+infra/terraform/.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# NOTE: infra/terraform/statements-exporter-sa-key.json is a DEMO-SEED and is
+# intentionally committed so the secret/IaC scanners catch it. Do NOT add it here.
