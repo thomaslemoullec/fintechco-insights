@@ -9,10 +9,13 @@ Run: `python scripts/seed_db.py`  (or `make seed`).
 """
 import os
 import random
+import sys
 
-from faker import Faker
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app import db
+from faker import Faker  # noqa: E402
+
+from app import db  # noqa: E402
 
 fake = Faker("en_US")
 Faker.seed(42)
