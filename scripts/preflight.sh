@@ -49,12 +49,13 @@ fi
 
 # 4. seeded flaws present
 echo "seeded flaws:"
-seed_count="$(grep -rl "DEMO-SEED" app infra 2>/dev/null | wc -l | tr -d ' ')"
-markers="$(grep -rho "DEMO-SEED [0-9][a-z]*" app infra 2>/dev/null | sort -u | tr '\n' ' ')"
-if [ "$seed_count" -ge 3 ]; then
-  ok "DEMO-SEED markers present in: $seed_count file(s) [${markers}]"
+seed_markers="$(grep -rhoE "DEMO-SEED [0-9]+[a-z]?" app infra 2>/dev/null | sort -u)"
+seed_n="$(printf '%s\n' "$seed_markers" | grep -c . || true)"
+markers="$(printf '%s ' $seed_markers)"
+if [ "$seed_n" -ge 4 ]; then
+  ok "$seed_n seed markers present [${markers}]"
 else
-  bad "expected DEMO-SEED markers not found"
+  bad "expected DEMO-SEED markers not found (found $seed_n)"
 fi
 if [ -f infra/terraform/statements-exporter-sa-key.json ]; then
   ok "seeded service-account key file present"
