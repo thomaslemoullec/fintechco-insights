@@ -1,0 +1,25 @@
+[project]
+name = "fintechco-statements"
+version = "0.1.0"
+description = "FinTechCo payments/statements service — Claude Code verification demo"
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+# Boring, legible defaults for a projector. E=pycodestyle, F=pyflakes,
+# I=isort, B=flake8-bugbear, UP=pyupgrade.
+select = ["E", "F", "I", "B", "UP"]
+# B008: FastAPI's `Depends(...)` in argument defaults is the idiomatic pattern.
+ignore = ["B008"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+pythonpath = ["."]
+# Control tests are the TDD "trap" — they fail on demo-start and pass after the fix.
+markers = [
+    "control: authorisation/compliance tests that must FAIL on demo-start (Beat 5)",
+]

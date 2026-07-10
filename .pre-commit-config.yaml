@@ -1,0 +1,17 @@
+# Optional: for teams that use the pre-commit framework (`pip install pre-commit`).
+# The demo's primary path is `.githooks/pre-commit` via `make setup` (no extra install).
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.7
+    hooks:
+      - id: ruff
+        args: [--fix]
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+  - repo: https://github.com/aquasecurity/tfsec
+    rev: v1.28.11
+    hooks:
+      - id: tfsec
+        args: ["--minimum-severity", "HIGH"]

@@ -1,0 +1,84 @@
+name: CI
+
+# The gate of record (Beat 10). Enable branch protection on the PR's base branch and
+# mark these jobs as REQUIRED status checks + require a human approver (see SETUP.md).
+# Nothing merges without all green AND a named human approval.
+
+on:
+  pull_request:
+  push:
+    branches: [main, demo-start]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  test:
+    name: tests (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements-dev.txt
+      - run: python scripts/seed_db.py
+      - run: pytest -q
+
+  lint:
+    name: lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install ruff
+      - run: ruff check app tests scripts
+
+  secrets:
+    name: secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  iac:
+    name: IaC scan (tfsec)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: infra/terraform
+
+  sast:
+    name: SAST (semgrep)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install semgrep
+      - run: semgrep scan --error --config p/python --config p/secrets --config p/terraform
+
+  security-review:
+    name: Claude security review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Independent AI security review of the diff — complements the deterministic scanners.
+      # Requires repo secret ANTHROPIC_API_KEY (see SETUP.md).
+      - uses: anthropics/claude-code-security-review@main
+        with:
+          claude-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          comment-pr: true
