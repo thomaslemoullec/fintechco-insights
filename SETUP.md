@@ -6,8 +6,8 @@ Split into **Must do once** and **Optional**. Copy-paste commands. Your known va
 |---|---|
 | Jira site URL | `https://google-team-u5wj5df1.atlassian.net` |
 | Jira cloud ID | `ce8b4631-0889-4880-a453-db85426b5ad8` |
-| Jira project key | `PAY` (rename from the auto-generated key — see step 2) |
-| Jira issue key | `PAY-1` *(fill in after you create the ticket)* |
+| Jira project key | `DNGATYPI` (auto-generated; kept as-is) |
+| Jira issue key | `DNGATYPI-2` (the demo ticket) |
 | GitHub repo | `github.com/<your-username>/fintechco-statements` *(fill in)* |
 
 ---
@@ -20,11 +20,11 @@ Split into **Must do once** and **Optional**. Copy-paste commands. Your known va
 
 ### 2. Jira — create the project + ticket
 1. In Jira, create a **Team-managed Software** project.
-2. **Rename the project key to `PAY`:** Project → **Project settings → Details → Key → `PAY`**.
-   (The first issue becomes `PAY-1`. Update the key in `DEMO.md` if yours differs.)
-3. Create a **Story** from `jira/TICKET.md`: paste Summary, Description, and the Acceptance
-   Criteria; add labels `payments`, `q3-roadmap`, `compliance-review`.
-4. Note the issue key (e.g. `PAY-1`) and keep the ticket open in a browser tab for Beat 0.
+2. The current UI ("spaces") auto-generates the key — here it's `DNGATYPI`. No rename needed;
+   the demo uses whatever the key is. (To change it: **Space settings → Details → Key**.)
+3. Populate the demo ticket **DNGATYPI-2** from `jira/TICKET.md`: set the Summary, paste the
+   Description, and add the Acceptance Criteria; labels `payments`, `q3-roadmap`, `compliance-review`.
+4. Keep DNGATYPI-2 open in a browser tab for Beat 0.
 
 ### 3. Atlassian MCP — connect + OAuth (the #1 on-stage risk)
 The repo ships `.mcp.json` declaring the `atlassian` server, so when you open Claude Code in
@@ -37,7 +37,7 @@ Then authenticate:
 # inside Claude Code:
 /mcp            # select "atlassian" → Authenticate → browser OAuth → approve
 ```
-- Grant the account access it needs: **read issues + add comments** on the `PAY` project.
+- Grant the account access it needs: **read issues + add comments** on the `DNGATYPI` project.
 - Confirm it's live: `/mcp` should show `atlassian` connected, and `make demo-check` pings it.
 - Re-run `/mcp` right before you present — an expired OAuth session is the classic failure.
 
