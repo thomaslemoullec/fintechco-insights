@@ -1,7 +1,7 @@
 name: CI
 
 # The gate of record (Beat 10). Enable branch protection on the PR's base branch and
-# mark these jobs as REQUIRED status checks + require a human approver (see SETUP.md).
+# mark these jobs as REQUIRED status checks + require a human approver in branch protection.
 # Nothing merges without all green AND a named human approval.
 
 on:
@@ -82,7 +82,7 @@ jobs:
         with:
           fetch-depth: 0
       # Independent AI security review of the diff — complements the deterministic scanners.
-      # Requires repo secret ANTHROPIC_API_KEY (see SETUP.md).
+      # Requires repo secret ANTHROPIC_API_KEY.
       - uses: anthropics/claude-code-security-review@main
         with:
           claude-api-key: ${{ secrets.ANTHROPIC_API_KEY }}

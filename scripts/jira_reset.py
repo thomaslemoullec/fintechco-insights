@@ -3,7 +3,7 @@
 This is a FALLBACK cleanup helper (the demo itself reads/writes the ticket via the
 Atlassian MCP connector). It uses the Jira REST API with a personal API token.
 
-Set these env vars (see SETUP.md), then run `python scripts/jira_reset.py`:
+Set these env vars, then run `python scripts/jira_reset.py`:
   JIRA_SITE       e.g. https://google-team-u5wj5df1.atlassian.net
   JIRA_EMAIL      the Atlassian account email
   JIRA_API_TOKEN  a token from https://id.atlassian.com/manage-profile/security/api-tokens
@@ -36,7 +36,7 @@ def main() -> None:
     issue = os.environ.get("JIRA_ISSUE_KEY", "")
     if not all([site, email, token, issue]):
         raise SystemExit(
-            "Set JIRA_SITE, JIRA_EMAIL, JIRA_API_TOKEN, JIRA_ISSUE_KEY (see SETUP.md)."
+            "Set JIRA_SITE, JIRA_EMAIL, JIRA_API_TOKEN, JIRA_ISSUE_KEY."
         )
 
     auth = base64.b64encode(f"{email}:{token}".encode()).decode()

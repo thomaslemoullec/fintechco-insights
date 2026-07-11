@@ -23,7 +23,7 @@ setup: $(VENV) ## Install deps, register git hooks, seed the DB
 	git config core.hooksPath .githooks
 	@chmod +x .githooks/pre-commit .claude/hooks/*.sh 2>/dev/null || true
 	$(MAKE) seed
-	@echo "setup complete. (Install gitleaks + tfsec separately — see SETUP.md.)"
+	@echo "setup complete. (Install gitleaks + tfsec separately — see README.)"
 
 .PHONY: seed
 seed: ## (Re)seed the SQLite DB with fake data

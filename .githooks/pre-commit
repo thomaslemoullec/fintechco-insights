@@ -29,7 +29,7 @@ if have gitleaks; then
     fail=1
   }
 else
-  echo "  ! gitleaks not found — skipping (see SETUP.md)"
+  echo "  ! gitleaks not found — skipping (see README)"
 fi
 
 echo "[pre-commit] tfsec (IaC scan)…"
@@ -39,7 +39,7 @@ if have tfsec; then
     fail=1
   }
 else
-  echo "  ! tfsec not found — skipping (see SETUP.md)"
+  echo "  ! tfsec not found — skipping (see README)"
 fi
 
 if [ "$fail" -ne 0 ]; then

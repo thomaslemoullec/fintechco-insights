@@ -47,5 +47,5 @@ brew install gitleaks tfsec
 3. **CI** — full test suite + SAST + secret/IaC scans + an independent security review,
    under branch protection with a required human approval.
 
-Branches: **`main`** (fixed reference) · **`demo-start`** (starting point). Setup details are
-in [`SETUP.md`](SETUP.md).
+Branches: **`main`** (fixed reference) · **`demo-start`** (starting point). Run `make help`
+for the available targets.

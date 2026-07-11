@@ -30,7 +30,7 @@ fi
 # 2. tools
 echo "scanners / tools:"
 for t in ruff gitleaks tfsec terraform; do
-  if command -v "$t" >/dev/null 2>&1; then ok "$t on PATH"; else warn "$t not found (see SETUP.md)"; fi
+  if command -v "$t" >/dev/null 2>&1; then ok "$t on PATH"; else warn "$t not found (see README)"; fi
 done
 
 # 3. hooks registered
@@ -95,7 +95,7 @@ if command -v claude >/dev/null 2>&1; then
   if claude mcp list 2>/dev/null | grep -iq atlassian; then
     ok "atlassian MCP server configured (run '/mcp' in Claude Code to confirm OAuth is live)"
   else
-    warn "atlassian not in 'claude mcp list' — add it (see SETUP.md)"
+    warn "atlassian not in 'claude mcp list' — add it via 'claude mcp add'"
   fi
 else
   warn "claude CLI not on PATH — can't check MCP from here"
