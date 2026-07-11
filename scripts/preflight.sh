@@ -100,7 +100,7 @@ if command -v claude >/dev/null 2>&1; then
 else
   warn "claude CLI not on PATH — can't check MCP from here"
 fi
-code="$(curl -s -o /dev/null -m 6 -w '%{http_code}' https://mcp.atlassian.com/v1/sse 2>/dev/null || echo 000)"
+code="$(curl -s -o /dev/null -m 6 -w '%{http_code}' https://mcp.atlassian.com/v1/mcp 2>/dev/null || echo 000)"
 if [ "$code" != "000" ]; then
   ok "mcp.atlassian.com reachable (HTTP $code)"
 else
