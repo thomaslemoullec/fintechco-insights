@@ -4,9 +4,9 @@ Endpoints:
   GET  /accounts/{account_id}/transactions          — search a customer's transactions
   POST /accounts/{account_id}/statements/export     — export a statement to the bucket
 
-NOTE FOR THE DEMO: this file ships with deliberately planted flaws on the
-`demo-start` branch (marked `# DEMO-SEED`). They are caught live and fixed during
-the demo. See SEEDS.md. Do not "clean them up" outside the demo flow.
+NOTE: on the `demo-start` branch this file ships with deliberately planted issues
+(marked `# DEMO-SEED`) that are caught and fixed as part of the training scenario.
+Do not "clean them up" outside that flow.
 """
 import csv
 import datetime

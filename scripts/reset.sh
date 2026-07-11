@@ -46,5 +46,5 @@ cat <<'NOTE'
 Jira is a REAL ticket — reset it too so the next run starts clean:
   • Delete the closing comment(s) this run added to the ticket, OR
   • Run:  python scripts/jira_reset.py   (deletes demo comments via the Atlassian REST API)
-  • Or simply spin a fresh ticket and update the key in DEMO.md / SETUP.md.
+  • Or simply spin a fresh ticket and update the ticket key in the operator notes.
 NOTE

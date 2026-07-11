@@ -1,39 +1,51 @@
-# FinTechCo — Statements Service (Claude Code demo)
+# FinTechCo — Statements Service
 
-A small FastAPI payments/statements service used to demo **Claude Code's verification story**:
-one Jira ticket, shipped safely, with problems caught at three layers (local review,
-pre-commit gates, CI) before anything merges.
+A payments / customer-statements service (Python · FastAPI · SQLite) built to the account
+conventions a regulated bank runs on: authorised account access, decimal money math, no NPI
+in logs, CMEK-encrypted exports, least-privilege US-region infrastructure. The conventions
+live in [`CLAUDE.md`](CLAUDE.md) and are enforced by tests, pre-commit hooks, and CI.
 
-> ⚠️ **Demo repository.** The `demo-start` branch contains **intentional, planted security
-> flaws** for the demo (see `SEEDS.md`). Do not deploy this. `main` is the fixed reference.
+> ⚠️ **Training repository.** The `demo-start` branch intentionally contains planted security
+> issues (marked `# DEMO-SEED`) used to exercise the review and CI gates. `main` is the fixed
+> reference. Not for production use.
 
-## 60-second quickstart
+## Quickstart
 ```bash
-make setup        # venv + deps, register git hooks, seed the DB
-make demo-check   # verify demo-ready (seeds present, control tests RED, tools + MCP)
-make run          # http://127.0.0.1:8000  (try GET /accounts/1/transactions with header X-Customer-Id: 1)
-make test         # full pytest suite
-make reset        # restore to pristine demo-start
+make setup     # virtualenv + deps, install git hooks, seed the SQLite DB
+make run       # serve on http://127.0.0.1:8000
+make test      # run the pytest suite
 ```
-You also need `gitleaks` and `tfsec` on your PATH — see **SETUP.md**.
+Example:
+```bash
+curl -H "X-Customer-Id: 1" http://127.0.0.1:8000/accounts/1/transactions
+```
 
-## What's here
+The pre-commit and CI gates also use two scanners — install them on your `PATH`:
+```bash
+# macOS
+brew install gitleaks tfsec
+# Linux — release binaries into ~/.local/bin
+```
+
+## Layout
 | Path | What |
 |---|---|
-| `app/` | FastAPI service — transaction search + statement export |
-| `app/ledger/` | legacy, undocumented rounding module (real git history) |
-| `infra/terraform/` | the statements GCS bucket (infra) |
-| `tests/` | pytest incl. authorisation/compliance **control tests** |
-| `.claude/` | the harness — `CLAUDE.md` conventions, settings, hooks, a read-only `compliance-reviewer` subagent, skills |
-| `.github/workflows/ci.yml` | CI gate: tests + ruff + gitleaks + tfsec + semgrep + Claude security review |
-| `jira/TICKET.md` | the ticket the demo opens on (offline reference copy) |
-| `DEMO.md` / `SEEDS.md` / `SETUP.md` | presenter run-sheet · seed catalogue · manual setup |
+| `app/` | the service — transaction search + statement export |
+| `app/ledger/` | legacy rounding module |
+| `infra/terraform/` | the statements GCS bucket + IAM |
+| `migrations/` | SQL schema |
+| `tests/` | pytest, including authorisation/compliance tests |
+| `CLAUDE.md` | the engineering conventions (parameterised queries, decimal money, no NPI in logs, authz on every account, US-region) |
+| `.claude/` | settings, hooks, a read-only `compliance-reviewer` agent, and skills |
+| `.github/workflows/` | CI: tests + ruff + gitleaks + tfsec + semgrep + security review |
+| `jira/` | the originating ticket |
+| `scripts/` | seed / reset / preflight helpers |
 
-## The three verification layers
-1. **Local** — tests-first + an AI compliance reviewer.
-2. **Pre-commit** — deterministic gates (`ruff`, `gitleaks`, `tfsec`).
-3. **CI** — full suite + SAST + secret/IaC scans + Claude security review, branch-protected,
-   human-approved.
+## Verification layers
+1. **Local** — tests-first plus an independent compliance review.
+2. **Pre-commit** — `ruff` (lint), `gitleaks` (secrets), `tfsec` (IaC).
+3. **CI** — full test suite + SAST + secret/IaC scans + an independent security review,
+   under branch protection with a required human approval.
 
-Branches: **`demo-start`** = seeded starting point (present the demo from here); **`main`** =
-finished, fixed reference (outage fallback). Full script in `DEMO.md`.
+Branches: **`main`** (fixed reference) · **`demo-start`** (starting point). Setup details are
+in [`SETUP.md`](SETUP.md).
