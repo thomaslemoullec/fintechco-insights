@@ -6,8 +6,8 @@ Split into **Must do once** and **Optional**. Copy-paste commands. Your known va
 |---|---|
 | Jira site URL | `https://google-team-u5wj5df1.atlassian.net` |
 | Jira cloud ID | `ce8b4631-0889-4880-a453-db85426b5ad8` |
-| Jira project key | `DNGATYPI` (auto-generated; kept as-is) |
-| Jira issue key | `DNGATYPI-2` (the demo ticket) |
+| Jira project key | `SCRUM` (auto-generated; kept as-is) |
+| Jira issue key | `SCRUM-6` (the demo ticket) |
 | GitHub repo | `github.com/<your-username>/fintechco-statements` *(fill in)* |
 
 ---
@@ -18,26 +18,25 @@ Split into **Must do once** and **Optional**. Copy-paste commands. Your known va
 - Install Claude Code and sign in (API key on your paid plan, or Bedrock/Vertex).
 - Nothing else needed — the harness (`CLAUDE.md`, `.claude/*`) ships in the repo.
 
-### 2. Jira — create the project + ticket
-1. In Jira, create a **Team-managed Software** project.
-2. The current UI ("spaces") auto-generates the key — here it's `DNGATYPI`. No rename needed;
-   the demo uses whatever the key is. (To change it: **Space settings → Details → Key**.)
-3. Populate the demo ticket **DNGATYPI-2** from `jira/TICKET.md`: set the Summary, paste the
-   Description, and add the Acceptance Criteria; labels `payments`, `q3-roadmap`, `compliance-review`.
-4. Keep DNGATYPI-2 open in a browser tab for Beat 0.
+### 2. Jira — project + ticket (already done)
+1. Project **"FinTechCo"** exists, key **`SCRUM`** (the current "spaces" UI auto-generates keys;
+   no rename needed — the demo uses whatever the key is).
+2. The demo Story **SCRUM-6** ("Add Transaction Search & Export…") was created via the connector
+   from `jira/TICKET.md`, with labels `payments`, `q3-roadmap`, `compliance-review`.
+3. Keep **SCRUM-6** open in a browser tab for Beat 0.
 
 ### 3. Atlassian MCP — connect + OAuth (the #1 on-stage risk)
 The repo ships `.mcp.json` declaring the `atlassian` server, so when you open Claude Code in
 this folder it will offer to enable it — **approve it**. (Equivalent CLI, if you prefer:)
 ```bash
-claude mcp add --transport sse atlassian https://mcp.atlassian.com/v1/sse
+claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp
 ```
 Then authenticate:
 ```
 # inside Claude Code:
 /mcp            # select "atlassian" → Authenticate → browser OAuth → approve
 ```
-- Grant the account access it needs: **read issues + add comments** on the `DNGATYPI` project.
+- Grant the account access it needs: **read issues + add comments** on the `SCRUM` project.
 - Confirm it's live: `/mcp` should show `atlassian` connected, and `make demo-check` pings it.
 - Re-run `/mcp` right before you present — an expired OAuth session is the classic failure.
 

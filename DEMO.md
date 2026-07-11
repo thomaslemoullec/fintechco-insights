@@ -5,13 +5,13 @@ the exact thing you type, what the room sees, rough time, the one-line **Say**, 
 **▶ Exec so-what**, and the **Fallback**. Full narration + persona Q&A live in the runbook.
 
 > **Before you start:** `make demo-check` is green, and you've run `/mcp` in Claude Code to
-> confirm the Atlassian OAuth is live. The demo ticket is `DNGATYPI-2`.
+> confirm the Atlassian OAuth is live. The demo ticket is `SCRUM-6`.
 > Minimum core if short on time: **2 → 3 → 4 → 5 → 7 → 9 → 10 → 12**.
 
 ---
 
 ## Beat 0 — Open on the ticket (bridge from slide 3)
-- **Do:** switch to the browser tab showing the Jira ticket (DNGATYPI-2).
+- **Do:** switch to the browser tab showing the Jira ticket (SCRUM-6).
 - **Say:** *"The fastest way to make an agent better on your codebase is not a smarter model — it's a tighter feedback loop. Let me show you what that means on one real ticket."*
 - **Fallback:** the ticket tab is already open; nothing to fail here.
 
@@ -31,7 +31,7 @@ the exact thing you type, what the room sees, rough time, the one-line **Say**, 
 - **Fallback:** `git log --follow app/ledger/rounding.py` shows the same history if the subagent is slow.
 
 ## Beat 3 — Pull the ticket via MCP · ~40s · LOCAL
-- **Do:** *"Read Jira ticket DNGATYPI-2 through the Atlassian connector and give me the requirements and acceptance criteria in your own words."*
+- **Do:** *"Read Jira ticket SCRUM-6 through the Atlassian connector and give me the requirements and acceptance criteria in your own words."*
 - **Then:** `/permissions` (or `/mcp`) — show Jira is allowlisted, read is allowed, **write tools stay gated**.
 - **Say:** *"Claude reaches only the servers you allow, and within a server only the tools you permit — reading the ticket here, not writing to Jira. Every call is `mcp__server__tool`, its own allow/ask/deny decision."*
 - **▶ Exec so-what:** "We start where your business starts — a ticket in Jira — and we'll close that same ticket at the end." (Head of DT + PMO)
@@ -101,7 +101,7 @@ the exact thing you type, what the room sees, rough time, the one-line **Say**, 
 - **Fallback:** `audit.log` is real; the admin dashboard is narrated (org-scoped).
 
 ## Beat 13 — Close the loop · ~20s
-- **Do:** *"Update Jira ticket DNGATYPI-2 via the Atlassian connector with a comment: what shipped, the tests added, and the two issues we caught and fixed (the IDOR and the cloud-encryption gap). Start the comment with 'Claude Code demo close-out'."*
+- **Do:** *"Update Jira ticket SCRUM-6 via the Atlassian connector with a comment: what shipped, the tests added, and the two issues we caught and fixed (the IDOR and the cloud-encryption gap). Start the comment with 'Claude Code demo close-out'."*
 - **Say:** *"A PM's ticket goes in, a resolved ticket comes back."*
 - **▶ Exec so-what / close:** hand to slide 8 (measure) and slide 9 (pilot). See the runbook's exec close.
 - **Fallback:** if the MCP write fails, narrate it against the open ticket tab; run `python scripts/jira_reset.py` later to clean up.
