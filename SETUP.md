@@ -8,7 +8,7 @@ Split into **Must do once** and **Optional**. Copy-paste commands. Your known va
 | Jira cloud ID | `ce8b4631-0889-4880-a453-db85426b5ad8` |
 | Jira project key | `SCRUM` (auto-generated; kept as-is) |
 | Jira issue key | `SCRUM-6` (the demo ticket) |
-| GitHub repo | `github.com/<your-username>/fintechco-statements` *(fill in)* |
+| GitHub repo | `github.com/thomaslemoullec/fintechco-statements` |
 
 ---
 
@@ -40,13 +40,18 @@ Then authenticate:
 - Confirm it's live: `/mcp` should show `atlassian` connected, and `make demo-check` pings it.
 - Re-run `/mcp` right before you present — an expired OAuth session is the classic failure.
 
-### 4. GitHub — repo, push, branch protection
+### 4. GitHub — repo, push, branch protection  *(repo already created + pushed)*
 ```bash
 gh auth login                       # or use a PAT
 gh repo create fintechco-statements --public --source=. --remote=origin
 git push -u origin main             # finished reference
 git push origin demo-start          # the seeded starting branch
 ```
+**Push protection note:** GitHub blocks the push because of the two seeded secrets (the fake
+GCP SA key + the `sk_live_` Stripe key). They are intentional and fake — either click the
+per-secret "allow" URLs GitHub prints, or disable **Settings → Code security → Secret
+scanning → Push protection** for this demo repo.
+
 Add the API key the CI security-review Action needs:
 ```bash
 gh secret set ANTHROPIC_API_KEY     # paste your key when prompted
