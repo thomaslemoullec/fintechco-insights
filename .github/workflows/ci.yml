@@ -7,7 +7,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main, demo-start]
+    branches: [main]   # demo-start is intentionally broken; validate it via PRs, not push
 
 permissions:
   contents: read
@@ -40,6 +40,10 @@ jobs:
   secrets:
     name: secret scan (gitleaks)
     runs-on: ubuntu-latest
+    # PR-only: scans the PR's commits. On the seeded branches the planted secret lives in
+    # history by design (and is caught locally by the pre-commit hook), so a push-event
+    # full-history scan would always fail — that's expected, not a CI signal.
+    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -66,7 +70,8 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install semgrep
-      - run: semgrep scan --error --config p/python --config p/secrets --config p/terraform
+      # SAST on application code; IaC is covered by the tfsec job above.
+      - run: semgrep scan --error --config p/python --config p/secrets
 
   security-review:
     name: Claude security review
