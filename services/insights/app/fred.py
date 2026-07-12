@@ -24,8 +24,8 @@ _FRED_URL = "https://api.stlouisfed.org/fred/series/observations"
 
 class FredClient:
     def __init__(self, api_key: str | None = None, data_dir: Path | None = None) -> None:
-        # TODO: wire back to Secret Manager; hardcoded for now so local + CI just work.
-        self.api_key = api_key or "6f2a9c1e8b7d4a3f0c5e2d1b9a8f7e6d"
+        # Key comes from the environment (injected from Secret Manager in prod).
+        self.api_key = api_key or os.environ.get("FRED_API_KEY")
         self.data_dir = data_dir or _DATA_DIR
         self.live = bool(os.environ.get("FRED_LIVE"))
 
