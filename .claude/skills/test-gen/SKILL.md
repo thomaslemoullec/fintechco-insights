@@ -5,8 +5,9 @@ description: Generate pytest tests for the statements service — especially aut
 
 # test-gen
 
-Write tests **first**, commit them, then implement. Tests live in `tests/` and use the
-`client` fixture from `tests/conftest.py` (a deterministic seeded DB: customer 1 "Alice
+Write tests **first**, commit them, then implement. Tests live in
+`services/statements/tests/` and use the `client` fixture from
+`services/statements/tests/conftest.py` (a deterministic seeded DB: customer 1 "Alice
 Rivera" owns account 1; customer 2 "Bob Chen" owns account 2).
 
 ## Always include these control tests for account-data endpoints

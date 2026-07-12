@@ -16,9 +16,9 @@ select = ["E", "F", "I", "B", "UP"]
 ignore = ["B008"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["services/statements/tests"]
 addopts = "-q"
-pythonpath = ["."]
+pythonpath = ["services/statements"]
 # Control tests are the TDD "trap" — they fail on demo-start and pass after the fix.
 markers = [
     "control: authorisation/compliance tests that must FAIL on demo-start (Beat 5)",

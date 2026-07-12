@@ -29,7 +29,7 @@ echo "→ hard-reset tracked files to $START_BRANCH"
 git reset --hard -q "$START_BRANCH"
 
 echo "→ removing generated files"
-rm -rf exports audit.log data/*.db .pytest_cache .ruff_cache
+rm -rf exports audit.log services/statements/data/*.db .pytest_cache .ruff_cache
 find . -path ./.venv -prune -o -name '__pycache__' -type d -print 2>/dev/null | xargs rm -rf 2>/dev/null || true
 
 echo "→ re-seeding the DB"

@@ -14,7 +14,7 @@ __pycache__/
 .ruff_cache/
 
 # --- Generated at runtime (restored by `make reset`) ---
-data/*.db
+services/statements/data/*.db
 exports/
 audit.log
 

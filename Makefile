@@ -31,7 +31,7 @@ seed: ## (Re)seed the SQLite DB with fake data
 
 .PHONY: run
 run: ## Run the API locally (http://127.0.0.1:8000)
-	$(VENV)/bin/uvicorn app.main:app --reload
+	$(VENV)/bin/uvicorn app.main:app --reload --app-dir services/statements
 
 .PHONY: test
 test: ## Run the full pytest suite
@@ -43,7 +43,7 @@ test-control: ## Run only the control tests (should be RED on demo-start)
 
 .PHONY: lint
 lint: ## Ruff lint
-	$(VENV)/bin/ruff check app tests scripts
+	$(VENV)/bin/ruff check services/statements/app services/statements/tests scripts
 
 .PHONY: scan
 scan: ## Run the secret + IaC scanners

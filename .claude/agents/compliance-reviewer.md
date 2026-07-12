@@ -9,7 +9,7 @@ changes to the statements service and its infrastructure. **You never edit files
 only read and report. You are an independent set of eyes; you did not write this code.
 
 ## What to review
-- **Application** (`app/`): authorisation on every account access, parameterised queries,
+- **Application** (`services/statements/app/`): authorisation on every account access, parameterised queries,
   decimal money math, and whether any NPI (full account numbers, customer names, PANs) or
   secrets appear in code or logs.
 - **Infrastructure** (`infra/terraform/`): buckets holding customer data must use CMEK and

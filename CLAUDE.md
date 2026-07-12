@@ -31,11 +31,12 @@ they are controls. Claude Code loads this file every session and is expected to 
 - Infra is Terraform under `infra/terraform/`. Buckets holding customer data require CMEK
   and least-privilege IAM. No public or `allUsers`/`allAuthenticatedUsers` bindings.
 
-## Stack & layout
-- Python 3.11+ / FastAPI. SQLite (`data/statements.db`) seeded with **fake** data only.
-- `app/` — the service. `app/ledger/` — **legacy, owned elsewhere; do not modify as part
-  of feature work.** `infra/terraform/` — cloud infra. `tests/` — pytest.
-- Run the app: `make run`. Run tests: `make test`.
+## Repo layout
+- `services/<name>/` — one directory per service, each with its own `CLAUDE.md` for
+  stack/layout/run/test specifics. This repo currently has one: `services/statements/`
+  (see [`services/statements/CLAUDE.md`](services/statements/CLAUDE.md)).
+- `infra/terraform/` — cloud infra, shared across services, owned separately from any one
+  service's app code.
 
 ## Definition of done
 A change is done only when **tests pass + a reviewer has approved + security/IaC scans are

@@ -49,7 +49,7 @@ fi
 
 # 4. seeded flaws present
 echo "seeded flaws:"
-seed_markers="$(grep -rhoE "DEMO-SEED [0-9]+[a-z]?" app infra 2>/dev/null | sort -u)"
+seed_markers="$(grep -rhoE "DEMO-SEED [0-9]+[a-z]?" services/statements/app infra 2>/dev/null | sort -u)"
 seed_n="$(printf '%s\n' "$seed_markers" | grep -c . || true)"
 markers="$(printf '%s ' $seed_markers)"
 if [ "$seed_n" -ge 4 ]; then

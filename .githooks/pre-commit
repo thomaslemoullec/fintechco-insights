@@ -16,7 +16,7 @@ fail=0
 
 echo "[pre-commit] ruff (lint)…"
 if have ruff; then
-  ruff check app tests scripts || fail=1
+  ruff check services/statements/app services/statements/tests scripts || fail=1
 else
   echo "  ! ruff not found — skipping (install: pip install ruff)"
 fi

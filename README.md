@@ -30,12 +30,13 @@ brew install gitleaks tfsec
 ## Layout
 | Path | What |
 |---|---|
-| `app/` | the service — transaction search + statement export |
-| `app/ledger/` | legacy rounding module |
+| `services/statements/` | the statements service — its own `CLAUDE.md`, app code, tests, migrations, data |
+| `services/statements/app/` | transaction search + statement export |
+| `services/statements/app/ledger/` | legacy rounding module |
+| `services/statements/tests/` | pytest, including authorisation/compliance tests |
+| `services/statements/migrations/` | SQL schema |
 | `infra/terraform/` | the statements GCS bucket + IAM |
-| `migrations/` | SQL schema |
-| `tests/` | pytest, including authorisation/compliance tests |
-| `CLAUDE.md` | the engineering conventions (parameterised queries, decimal money, no NPI in logs, authz on every account, US-region) |
+| `CLAUDE.md` | bank-wide engineering conventions (parameterised queries, decimal money, no NPI in logs, authz on every account, US-region) |
 | `.claude/` | settings, hooks, a read-only `compliance-reviewer` agent, and skills |
 | `.github/workflows/` | CI: tests + ruff + gitleaks + tfsec + semgrep + security review |
 | `jira/` | the originating ticket |

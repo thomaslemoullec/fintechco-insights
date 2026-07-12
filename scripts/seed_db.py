@@ -11,11 +11,11 @@ import os
 import random
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from faker import Faker  # noqa: E402
+_repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(_repo_root, "services", "statements"))
 
 from app import db  # noqa: E402
+from faker import Faker  # noqa: E402
 
 fake = Faker("en_US")
 Faker.seed(42)

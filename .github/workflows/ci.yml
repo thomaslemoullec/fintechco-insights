@@ -35,7 +35,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install ruff
-      - run: ruff check app tests scripts
+      - run: ruff check services/statements/app services/statements/tests scripts
 
   secrets:
     name: secret scan (gitleaks)

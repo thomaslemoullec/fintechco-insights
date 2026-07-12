@@ -1,7 +1,7 @@
 {
   "permissions": {
     "deny": [
-      "Write(./migrations/**)",
+      "Write(./services/statements/migrations/**)",
       "Read(./**/*.env)",
       "Read(./secrets/**)",
       "Read(./infra/terraform/*-key.json)"
