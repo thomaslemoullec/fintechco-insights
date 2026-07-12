@@ -21,6 +21,9 @@ echo "→ Ensuring dependencies…"
 [ -x "$VENV/bin/python" ] || python3 -m venv "$VENV"
 "$VENV/bin/pip" install -q -r requirements-dev.txt
 
+echo "→ Resetting the Jira ticket…"
+"$VENV/bin/python" scripts/jira_reset.py
+
 echo "→ Checking start-state invariants…"
 [ "$(git branch --show-current)" = "demo-start" ] && ok "on demo-start branch" || bad "not on demo-start"
 ls services/insights/app/data/*.csv >/dev/null 2>&1 && ok "data cache present" || bad "data cache missing (run: make fetch, or make seed)"
