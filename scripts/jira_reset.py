@@ -56,7 +56,8 @@ def main() -> int:
 
         # 2) move back to To Do (if not already there)
         transitions = _req("GET", f"/issue/{ISSUE}/transitions")["transitions"]
-        match = next((t for t in transitions if t["to"]["name"].lower() == TARGET_STATUS.lower()), None)
+        want = TARGET_STATUS.lower()
+        match = next((t for t in transitions if t["to"]["name"].lower() == want), None)
         if match:
             _req("POST", f"/issue/{ISSUE}/transitions", {"transition": {"id": match["id"]}})
             moved = f"→ {TARGET_STATUS}"
