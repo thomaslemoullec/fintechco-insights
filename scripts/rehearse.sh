@@ -17,6 +17,9 @@ echo "→ Resetting to a clean demo-start…"
 git checkout -f demo-start >/dev/null 2>&1 || { echo "cannot switch to demo-start"; exit 1; }
 git clean -fd services scripts >/dev/null 2>&1   # drop untracked build artifacts (respects .gitignore)
 
+# Decoy local secret (gitignored) so the deny-rule + guard-hook beat protects a real file.
+printf 'FRED_API_KEY=fake-local-key-not-used-by-the-app\n' > services/insights/.env
+
 echo "→ Ensuring dependencies…"
 [ -x "$VENV/bin/python" ] || python3 -m venv "$VENV"
 "$VENV/bin/pip" install -q -r requirements-dev.txt

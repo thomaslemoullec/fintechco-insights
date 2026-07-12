@@ -16,6 +16,10 @@ __pycache__/
 # --- Runtime artifacts ---
 audit.log
 
+# --- Local secrets — never commit (secrets live in Secret Manager) ---
+.env
+*.env
+
 # --- Terraform local state ---
 infra/terraform/.terraform/
 *.tfstate
