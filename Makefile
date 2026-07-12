@@ -38,3 +38,6 @@ lint: ## Lint the Python code
 
 rehearse: $(VENV) ## Reset to demo-start and verify the rehearsal start-state
 	@bash scripts/rehearse.sh
+
+jira-reset: ## Reset the demo Jira ticket to To Do (needs JIRA_EMAIL + JIRA_API_TOKEN)
+	$(PY) scripts/jira_reset.py
