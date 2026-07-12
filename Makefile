@@ -35,3 +35,6 @@ test-control: ## Run only the data-governance / model-risk control tests
 
 lint: ## Lint the Python code
 	$(VENV)/bin/ruff check services scripts
+
+rehearse: $(VENV) ## Reset to demo-start and verify the rehearsal start-state
+	@bash scripts/rehearse.sh
