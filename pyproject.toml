@@ -1,0 +1,20 @@
+[project]
+name = "fintechco-insights"
+version = "0.1.0"
+description = "FinTechCo Macro Insights — internal economic-indicators dashboard"
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["B008"]  # FastAPI dependency-injection uses function calls in defaults
+
+[tool.pytest.ini_options]
+testpaths = ["services/insights/tests"]
+pythonpath = ["services/insights"]
+addopts = "-q"
+markers = [
+    "control: data-governance / model-risk tests that guard client-facing outputs",
+]

@@ -1,0 +1,52 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__atlassian__getJiraIssue",
+      "mcp__atlassian__searchJiraIssuesUsingJql",
+      "mcp__atlassian__getTransitionsForJiraIssue",
+      "mcp__atlassian__getVisibleJiraProjects",
+      "mcp__atlassian__getJiraProjectIssueTypesMetadata",
+      "mcp__atlassian__atlassianUserInfo",
+      "mcp__atlassian__getAccessibleAtlassianResources",
+      "mcp__atlassian__lookupJiraAccountId",
+      "mcp__atlassian__search",
+      "mcp__atlassian__fetch",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git show:*)",
+      "Bash(git status:*)",
+      "Bash(make:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)"
+    ],
+    "ask": [
+      "mcp__atlassian__addCommentToJiraIssue",
+      "mcp__atlassian__editJiraIssue",
+      "mcp__atlassian__createJiraIssue",
+      "mcp__atlassian__transitionJiraIssue",
+      "mcp__atlassian__createIssueLink",
+      "mcp__atlassian__addWorklogToJiraIssue"
+    ],
+    "deny": [
+      "Read(./**/*.env)",
+      "Read(./secrets/**)",
+      "Read(./infra/terraform/*-key.json)",
+      "Read(./**/*-key.json)"
+    ]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/persona.sh" } ] }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/audit.sh" }
+        ]
+      }
+    ]
+  }
+}

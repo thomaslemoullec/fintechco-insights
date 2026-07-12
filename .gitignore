@@ -1,0 +1,26 @@
+# --- Internal presenter materials — never commit ---
+_internal/
+*.zip
+
+# --- Claude Code project-local (personal, not shared) ---
+.claude/settings.local.json
+.claude/hooks/persona.sh
+
+# --- Python ---
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# --- Runtime artifacts ---
+audit.log
+
+# --- Terraform local state ---
+infra/terraform/.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# NOTE: services/insights/app/data/*.csv are synthetic fixtures and ARE committed
+# (they contain no real or personal data). See scripts/gen_fixtures.py.

@@ -1,0 +1,302 @@
+/* =============================================================================
+   FinTechCo · Macro Insights — design system
+   Anthropic-style: warm, editorial, calm. Tokens defined here; documented in
+   DESIGN.md. No web fonts (must work offline). See DESIGN.md for the rationale.
+   ========================================================================== */
+
+:root {
+  /* --- Surfaces & lines --- */
+  --bg: #FAF9F5;          /* warm off-white canvas */
+  --surface: #FFFFFF;     /* card surface */
+  --border: #E7E2D8;      /* hairline border */
+
+  /* --- Text --- */
+  --ink: #191917;         /* primary ink */
+  --muted: #6E6A5F;       /* secondary / muted ink */
+
+  /* --- Accent (clay) --- */
+  --accent: #CC785C;
+  --accent-strong: #B15C3F;
+
+  /* --- Decade categorical ramp (oldest→newest, warm→cool: time passing) --- */
+  --decade-1960: #B15C3F;
+  --decade-1970: #CC785C;
+  --decade-1980: #D9A066;
+  --decade-1990: #C9B458;
+  --decade-2000: #7FA47B;
+  --decade-2010: #5B8AA6;
+  --decade-2020: #3E5C76;
+
+  /* --- Type --- */
+  --font-serif: Georgia, "Times New Roman", serif;      /* headings */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; /* body */
+
+  /* --- Shape & depth --- */
+  --radius: 12px;
+  --shadow: 0 1px 2px rgba(25, 25, 23, .04), 0 4px 16px rgba(25, 25, 23, .05);
+
+  /* --- Spacing scale: 4 / 8 / 12 / 16 / 24 / 32 / 48 --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* Content width — comfortable on a 1280px screen-share. */
+  --max-width: 1200px;
+}
+
+/* --- Reset-ish --- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-serif);
+  line-height: 1.15;   /* slightly tight leading on headings */
+  letter-spacing: -0.01em;
+  margin: 0;
+  font-weight: 600;
+}
+
+p { margin: 0; }
+
+/* =============================================================================
+   Header
+   ========================================================================== */
+.site-header {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space-7) var(--space-6) var(--space-5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.brand .eyebrow {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+  margin-bottom: var(--space-1);
+}
+
+.brand .product {
+  font-size: 34px;
+}
+
+.asof-pill {
+  flex: none;
+  font-size: 13px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: var(--space-2) var(--space-4);
+  white-space: nowrap;
+}
+.asof-pill span { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* =============================================================================
+   Page & sections
+   ========================================================================== */
+.page {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-6) var(--space-7);
+}
+
+.section { margin-top: var(--space-7); }
+
+.section-header { margin-bottom: var(--space-5); }
+.section-header--tight { margin-bottom: var(--space-4); }
+
+.section-title { font-size: 24px; }
+.subsection-title { font-size: 18px; }
+
+.section-sub {
+  color: var(--muted);
+  font-size: 15px;
+  margin-top: var(--space-2);
+  max-width: 68ch;
+}
+
+/* The summary lede reads as editorial body copy, a touch larger. */
+.lede { font-size: 17px; color: var(--ink); line-height: 1.5; }
+
+/* =============================================================================
+   Cards
+   ========================================================================== */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--space-5);
+}
+
+.card + .card { margin-top: var(--space-5); }
+
+/* Responsive 3-up grid; reflows to 2 then 1 on narrow viewports. */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-5);
+}
+
+/* --- Indicator card internals --- */
+.indicator-card { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.indicator-card__title {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.stat { display: flex; align-items: baseline; gap: var(--space-2); }
+.stat__value {
+  font-family: var(--font-serif);
+  font-size: 40px;
+  line-height: 1;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.stat__units { font-size: 14px; color: var(--muted); }
+.stat__meta { font-size: 13px; color: var(--muted); margin-top: var(--space-1); }
+
+/* =============================================================================
+   Charts
+   ========================================================================== */
+.chart { width: 100%; height: 160px; }         /* compact line charts */
+.chart--tall { height: 460px; }                /* main phillips canvas */
+.chart--strip { height: 220px; }               /* correlation strip */
+
+.phillips-card { padding-bottom: var(--space-4); }
+
+.chart-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+.chart-caption { font-size: 13px; color: var(--muted); max-width: 46ch; }
+
+/* --- Segmented toggle --- */
+.segmented {
+  display: inline-flex;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: var(--space-1);
+  gap: var(--space-1);
+}
+.segmented__btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  padding: var(--space-2) var(--space-4);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+  white-space: nowrap;
+}
+.segmented__btn:hover { color: var(--ink); }
+.segmented__btn[aria-selected="true"] {
+  background: var(--surface);
+  color: var(--accent-strong);
+  box-shadow: var(--shadow);
+}
+.segmented__btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* =============================================================================
+   View metadata footer (compliance: sources / methodology / disclaimer)
+   ========================================================================== */
+.view-meta {
+  margin-top: var(--space-5);
+  padding: var(--space-5);
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4) var(--space-6);
+}
+.view-meta__block { min-width: 0; }
+.view-meta__label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: var(--space-1);
+}
+.view-meta__body { font-size: 14px; color: var(--ink); }
+.view-meta__body ul { margin: 0; padding-left: 1.1em; }
+.view-meta__disclaimer {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.45;
+  border-top: 1px dashed var(--border);
+  padding-top: var(--space-4);
+}
+
+/* =============================================================================
+   Error banner & loading states
+   ========================================================================== */
+.error-banner {
+  max-width: var(--max-width);
+  margin: var(--space-4) auto 0;
+  padding: var(--space-4) var(--space-6);
+  background: #FBECE7;
+  border: 1px solid var(--accent);
+  color: var(--accent-strong);
+  border-radius: var(--radius);
+  font-size: 14px;
+}
+
+.chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* =============================================================================
+   Responsive
+   ========================================================================== */
+@media (max-width: 900px) {
+  .card-grid { grid-template-columns: 1fr 1fr; }
+  .view-meta { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .site-header { flex-direction: column; align-items: flex-start; padding: var(--space-6) var(--space-4) var(--space-4); }
+  .page { padding: 0 var(--space-4) var(--space-6); }
+  .card-grid { grid-template-columns: 1fr; }
+  .brand .product { font-size: 28px; }
+}
