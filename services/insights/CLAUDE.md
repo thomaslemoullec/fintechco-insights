@@ -11,7 +11,7 @@ done) live in the root [`CLAUDE.md`](../../CLAUDE.md). This file covers only ser
 
 ## Layout
 - `app/main.py` — FastAPI entrypoint; mounts the API router and serves `web/`.
-- `app/api.py` — HTTP endpoints (`/api/indicators`, `/api/series/{id}`, `/api/views/phillips`).
+- `app/api.py` — HTTP endpoints (`/api/indicators`, `/api/series/{id}`, `/api/news`).
 - `app/fred.py` — data source layer; key from env, provenance logging on every pull.
 - `app/analysis.py` — cleaning / alignment / exploratory analysis (deterministic).
 - `app/indicators.py` — indicator catalogue with source/units/frequency metadata.

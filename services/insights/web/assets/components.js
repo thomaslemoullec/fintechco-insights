@@ -135,11 +135,10 @@ export function segmented({ options, selected, onChange, ariaLabel }) {
 }
 
 /**
- * The compliance metadata footer for the Phillips view.
- * Sources / Methodology / Disclaimer must ALL be visible on every variant, plus
- * an expandable "Methodology decisions" list. This is a client-facing compliance
- * requirement — the caller renders it once, outside the A/B swap region, so it is
- * present regardless of which variant is shown.
+ * The compliance metadata footer for a client-facing view (Sources / Methodology
+ * / Disclaimer). Sources / Methodology / Disclaimer must ALL be visible, plus an
+ * expandable "Methodology decisions" list. This is a client-facing compliance
+ * requirement — any client-facing figure must render this disclosure footer.
  */
 export function viewMeta({ sources, methodology, disclaimer, decisions }) {
   const sourceList = el("ul", {}, (sources || []).map((s) => el("li", { text: s })));
