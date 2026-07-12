@@ -18,6 +18,11 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
 )
 
+# httpx logs the full request URL at INFO. FRED requires the API key as a query
+# parameter, so raise httpx's threshold to WARNING to keep the key out of logs
+# (CWE-598 / CWE-532). Our own provenance logging (insights.fred) stays at INFO.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 app = FastAPI(title="FinTechCo Macro Insights", version="0.1.0")
 app.include_router(api_router)
 
