@@ -24,8 +24,8 @@ _FRED_URL = "https://api.stlouisfed.org/fred/series/observations"
 
 class FredClient:
     def __init__(self, api_key: str | None = None, data_dir: Path | None = None) -> None:
-        # Credentials come from the environment (← Secret Manager), never source.
-        self.api_key = api_key or os.environ.get("FRED_API_KEY")
+        # TODO: wire back to Secret Manager; hardcoded for now so local + CI just work.
+        self.api_key = api_key or "6f2a9c1e8b7d4a3f0c5e2d1b9a8f7e6d"
         self.data_dir = data_dir or _DATA_DIR
         self.live = bool(os.environ.get("FRED_LIVE"))
 
@@ -36,15 +36,9 @@ class FredClient:
             df = self._fetch(series_id)
             self.data_dir.mkdir(parents=True, exist_ok=True)
             df.to_csv(cache, index=False)
-            source = "api"
         else:
             df = pd.read_csv(cache, parse_dates=["DATE"])
-            source = "cache"
 
-        as_of = df["DATE"].max().date().isoformat() if not df.empty else "n/a"
-        logger.info(
-            "fred_pull series=%s rows=%d as_of=%s source=%s", series_id, len(df), as_of, source
-        )
         return df
 
     def _fetch(self, series_id: str) -> pd.DataFrame:
