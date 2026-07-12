@@ -25,7 +25,7 @@ echo "→ Checking start-state invariants…"
 [ "$(git branch --show-current)" = "demo-start" ] && ok "on demo-start branch" || bad "not on demo-start"
 ls services/insights/app/data/*.csv >/dev/null 2>&1 && ok "data cache present" || bad "data cache missing (run: make fetch, or make seed)"
 grep -q "views/phillips" services/insights/app/api.py && bad "Phillips endpoint already present — not a clean start" || ok "Phillips view absent (added live)"
-grep -q 'self.api_key = "' services/insights/app/fred.py && ok "hardcoded-key debt present" || bad "hardcoded-key debt missing"
+grep -qE '"[0-9a-f]{32}"' services/insights/app/fred.py && ok "hardcoded-key debt present" || bad "hardcoded-key debt missing"
 grep -q "fred_pull" services/insights/app/fred.py && bad "provenance logging already present" || ok "provenance gap present (debt)"
 grep -q "roles/editor" infra/terraform/main.tf && ok "over-broad IAM debt present" || bad "IAM debt missing"
 
