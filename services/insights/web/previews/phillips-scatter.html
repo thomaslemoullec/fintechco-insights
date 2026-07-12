@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FinTechCo · Inflation vs. Unemployment</title>
+  <meta name="description" content="Phillips-curve preview — inflation (YoY %) vs. unemployment (%), coloured by decade with a descriptive fitted trend." />
+  <link rel="stylesheet" href="/assets/styles.css" />
+  <style>
+    /* Decade legend: on-brand swatch chips so identity is never colour-alone.
+       Sizes track the spacing scale (--space-*); swatch colours come from the
+       shared decade ramp via decadeColor() at render time (no ad-hoc hex here). */
+    .phillips-legend { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin-top: var(--space-4); }
+    .phillips-legend__item { display: inline-flex; align-items: center; gap: var(--space-2); font-size: 13px; color: var(--muted); }
+    .phillips-legend__swatch { width: var(--space-3); height: var(--space-3); border-radius: 3px; flex: none; }
+  </style>
+</head>
+<body>
+  <!-- Error banner: un-hidden if the fetch fails; the view degrades, never blanks. -->
+  <div id="error-banner" class="error-banner" role="alert" hidden></div>
+
+  <!-- Self-contained preview: just the main pane (no sidebar) so the view can be
+       reviewed in isolation, using the same shell classes as the app. -->
+  <main class="main">
+    <div class="topbar">
+      <h1 class="topbar__title">Inflation vs. Unemployment</h1>
+      <!-- "Data as of" pill; populated from the payload as_of. -->
+      <div class="asof-pill" id="asof-pill" hidden>
+        Data as of <span id="asof-date">—</span>
+      </div>
+    </div>
+
+    <div id="view-root" class="view"></div>
+  </main>
+
+  <!-- ECharts (vendored, Apache v5) exposes the global `echarts`; load before the module. -->
+  <script src="/assets/vendor/echarts.min.js"></script>
+  <script type="module">
+    import { THEME, decadeColor } from "/assets/charts.js";
+    import { el, mount, viewMeta, sectionHeader } from "/assets/components.js";
+
+    const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    /** Format an ISO date (YYYY-MM-DD) as e.g. "Mar 1984" for tooltips. */
+    const fmtMonth = (iso) => {
+      const [y, m] = iso.split("-");
+      return `${MONTHS[Number(m) - 1]} ${y}`;
+    };
+    const decadeLabel = (d) => `${d}s`;
+
+    const root = document.getElementById("view-root");
+
+    /** Show the shared error banner and a degraded inline note (never a blank page). */
+    function fail(message) {
+      const banner = document.getElementById("error-banner");
+      banner.textContent = message;
+      banner.hidden = false;
+      mount(root, el("div", { className: "inline-note", text: message }));
+    }
+
+    /** Build the ECharts scatter option: decade-coloured points + descriptive fit. */
+    function scatterOption(payload) {
+      // Points carry their raw fields so the tooltip can read date/decade directly.
+      const points = payload.points.map((p) => ({
+        value: [p.unemployment, p.inflation],
+        date: p.date,
+        decade: p.decade,
+        // Colour ONLY encodes the ordered decade category; ~0.5 opacity so overplotting reads.
+        itemStyle: { color: decadeColor(p.decade), opacity: 0.5 },
+      }));
+
+      const fit = payload.fit;
+
+      return {
+        textStyle: { color: THEME.ink, fontFamily: THEME.fontSans },
+        grid: { left: 56, right: 24, top: 24, bottom: 52 },
+        tooltip: {
+          // White surface, hairline border, soft shadow — the shared tooltip look.
+          backgroundColor: THEME.surface,
+          borderColor: THEME.border,
+          borderWidth: 1,
+          padding: [8, 12],
+          textStyle: { color: THEME.ink, fontFamily: THEME.fontSans, fontSize: 12 },
+          extraCssText: "box-shadow: 0 4px 16px rgba(25,25,23,.08); border-radius: 8px;",
+          formatter: (p) => {
+            const d = p.data;
+            if (!d || !d.date) return "";
+            return `${fmtMonth(d.date)}<br/>Unemployment <b>${d.value[0]}%</b><br/>Inflation <b>${d.value[1]}%</b> YoY`;
+          },
+        },
+        xAxis: {
+          type: "value",
+          scale: true,
+          name: "Unemployment (%)",
+          nameLocation: "center",
+          nameGap: 34,
+          axisLine: { lineStyle: { color: THEME.border } },
+          axisTick: { show: false },
+          axisLabel: { color: THEME.muted, fontFamily: THEME.fontSans, fontSize: 11, formatter: "{value}%" },
+          nameTextStyle: { color: THEME.muted, fontFamily: THEME.fontSans, fontSize: 12 },
+          splitLine: { lineStyle: { color: THEME.border, type: "dashed" } },
+        },
+        yAxis: {
+          type: "value",
+          scale: true,
+          name: "Inflation (YoY %)",
+          nameLocation: "center",
+          nameGap: 42,
+          axisLine: { show: false },
+          axisTick: { show: false },
+          axisLabel: { color: THEME.muted, fontFamily: THEME.fontSans, fontSize: 11, formatter: "{value}%" },
+          nameTextStyle: { color: THEME.muted, fontFamily: THEME.fontSans, fontSize: 12 },
+          splitLine: { lineStyle: { color: THEME.border, type: "dashed" } },
+        },
+        series: [
+          {
+            type: "scatter",
+            symbolSize: 9,
+            data: points,
+            // Hover raises opacity to full and adds a surface ring (per chart rules).
+            emphasis: {
+              focus: "none",
+              itemStyle: { opacity: 1, borderColor: THEME.surface, borderWidth: 2 },
+            },
+          },
+          {
+            // Fitted trend: a single straight line, dashed + thin + muted so it reads
+            // as clearly secondary to the points. silent: no tooltip / no hover capture.
+            type: "line",
+            data: [[fit.x0, fit.y0], [fit.x1, fit.y1]],
+            showSymbol: false,
+            silent: true,
+            lineStyle: { color: THEME.muted, width: 1.5, type: "dashed" },
+            z: 1,
+          },
+        ],
+      };
+    }
+
+    /** Build the DOM decade legend so identity never relies on colour alone. */
+    function decadeLegend(points) {
+      const decades = [...new Set(points.map((p) => p.decade))].sort((a, b) => a - b);
+      return el(
+        "div",
+        { className: "phillips-legend", role: "list", "aria-label": "Decade colour key" },
+        decades.map((d) => {
+          const swatch = el("span", { className: "phillips-legend__swatch", "aria-hidden": "true" });
+          swatch.style.background = decadeColor(d); // token ramp value, not an ad-hoc hex
+          return el("span", { className: "phillips-legend__item", role: "listitem" }, [
+            swatch,
+            el("span", { text: decadeLabel(d) }),
+          ]);
+        }),
+      );
+    }
+
+    async function render() {
+      let data;
+      try {
+        const res = await fetch("/api/views/phillips");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        data = await res.json();
+      } catch (err) {
+        fail(`Couldn't load the Inflation vs. Unemployment view (${err.message}).`);
+        return;
+      }
+
+      // "Data as of" pill in the top bar.
+      document.getElementById("asof-date").textContent = data.as_of;
+      document.getElementById("asof-pill").hidden = false;
+
+      // Chart container (ECharts needs measurable dimensions, so mount before init).
+      const chartEl = el("div", {
+        className: "chart chart--tall",
+        role: "img",
+        "aria-label": "Scatter of inflation versus unemployment, coloured by decade, with a fitted trend line",
+      });
+
+      const card = el("div", { className: "card" }, [
+        chartEl,
+        decadeLegend(data.points),
+        // Caption near the trend line: states the fit is descriptive, not predictive.
+        el("p", { className: "chart-caption", text: data.fit.note }),
+      ]);
+
+      const section = el("section", { className: "section" }, [
+        sectionHeader({
+          title: "Inflation vs. Unemployment",
+          sub: "Monthly YoY CPI inflation against the U-3 unemployment rate, one point per month, coloured by decade.",
+        }),
+        card,
+      ]);
+
+      // Compliance: the disclosure footer renders once, below the chart, always visible.
+      const footer = viewMeta({
+        sources: data.sources,
+        methodology: data.methodology,
+        disclaimer: data.disclaimer,
+        decisions: data.decisions,
+      });
+
+      mount(root, [section, footer]);
+
+      // Init the chart now that the container is in the DOM and has dimensions.
+      const chart = echarts.init(chartEl);
+      chart.setOption(scatterOption(data));
+      // Keep the canvas crisp on resize (debounced via requestAnimationFrame).
+      let raf = 0;
+      window.addEventListener("resize", () => {
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(() => chart.resize());
+      });
+    }
+
+    render();
+  </script>
+</body>
+</html>

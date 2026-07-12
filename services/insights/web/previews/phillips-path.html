@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FinTechCo · Inflation vs. Unemployment</title>
+  <meta name="description" content="Phillips-curve connected time-path: inflation vs. unemployment, colored by decade." />
+  <link rel="stylesheet" href="/assets/styles.css" />
+  <!-- Scoped legend styling. Values reference design tokens only (var(--*)); the
+       swatch colors come from decadeColor() at render time, not ad-hoc hex. -->
+  <style>
+    .pc-legend {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-2) var(--space-4);
+      margin-top: var(--space-4);
+    }
+    .pc-legend__caption { font-size: 12px; color: var(--muted); margin-right: var(--space-2); }
+    .pc-legend__item { display: inline-flex; align-items: center; gap: var(--space-2); font-size: 13px; color: var(--muted); }
+    .pc-legend__swatch { width: var(--space-3); height: var(--space-3); border-radius: 3px; flex: none; }
+    .pc-legend__arrow { color: var(--muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <!-- Error banner: un-hidden by the module if the fetch fails. Never a blank page. -->
+  <div id="error-banner" class="error-banner" role="alert" hidden></div>
+
+  <!-- Standalone preview: main pane only (no sidebar), on-brand shell classes. -->
+  <main class="main">
+    <div class="topbar">
+      <h1 class="topbar__title">Inflation vs. Unemployment</h1>
+      <div class="asof-pill" id="asof-pill" hidden>
+        Data as of <span id="asof-date">—</span>
+      </div>
+    </div>
+    <div id="view-root" class="view"></div>
+  </main>
+
+  <!-- ECharts (vendored, Apache v5) exposes the global `echarts`; load before the module. -->
+  <script src="/assets/vendor/echarts.min.js"></script>
+  <script type="module">
+    import { THEME, decadeColor } from "/assets/charts.js";
+    import { el, mount, viewMeta, sectionHeader } from "/assets/components.js";
+
+    // --- Small helpers mirroring the charts.js conventions (kept local) ---------
+    const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const fmtMonth = (iso) => { const [y, m] = iso.split("-"); return `${MONTHS[Number(m) - 1]} ${y}`; };
+
+    // Shared axis + tooltip styling (same tokens/conventions as charts.js). -------
+    const axisCommon = {
+      axisLine: { lineStyle: { color: THEME.border } },
+      axisTick: { show: false },
+      axisLabel: { color: THEME.muted, fontFamily: THEME.fontSans, fontSize: 11 },
+      nameTextStyle: { color: THEME.muted, fontFamily: THEME.fontSans, fontSize: 12 },
+      splitLine: { lineStyle: { color: THEME.border, type: "dashed" } },
+    };
+    const tooltipCommon = {
+      backgroundColor: THEME.surface,
+      borderColor: THEME.border,
+      borderWidth: 1,
+      padding: [8, 12],
+      textStyle: { color: THEME.ink, fontFamily: THEME.fontSans, fontSize: 12 },
+      extraCssText: "box-shadow: 0 4px 16px rgba(25,25,23,.08); border-radius: 8px;",
+    };
+
+    const decadeLabel = (d) => `${d}s`;
+
+    /**
+     * Build the connected time-path option. The monthly points are already in
+     * chronological order; we split them into one line series per decade so each
+     * segment/point wears its decade color (color encodes the ordered category
+     * only). To keep the path unbroken across decade boundaries, each decade's
+     * series carries the first point of the next decade as a marker-less bridge.
+     */
+    function pathOption(points, decades) {
+      const idxOf = (d) => decades.indexOf(d);
+      const mk = (p, bridge) => ({
+        value: [p.unemployment, p.inflation],
+        date: p.date,
+        decade: p.decade,
+        ...(bridge ? { symbol: "none" } : {}),   // bridge copy draws the line, not a duplicate marker
+      });
+
+      const buckets = decades.map(() => []);
+      points.forEach((p) => buckets[idxOf(p.decade)].push(mk(p, false)));
+      // Bridge: append the first point of decade k to decade k-1's series.
+      for (let k = 1; k < decades.length; k++) {
+        const firstOfK = points.find((p) => p.decade === decades[k]);
+        if (firstOfK) buckets[k - 1].push(mk(firstOfK, true));
+      }
+
+      const series = decades.map((d, i) => ({
+        type: "line",
+        name: decadeLabel(d),
+        data: buckets[i],
+        showSymbol: true,
+        symbolSize: 5,
+        smooth: false,
+        z: i,
+        lineStyle: { color: decadeColor(d), width: 1.5, opacity: 0.9 },
+        itemStyle: { color: decadeColor(d), opacity: 0.7 },  // slight opacity so dense loops read
+        emphasis: { itemStyle: { opacity: 1, borderColor: THEME.surface, borderWidth: 2 } },
+      }));
+
+      return {
+        textStyle: { color: THEME.ink, fontFamily: THEME.fontSans },
+        grid: { left: 56, right: 24, top: 24, bottom: 48 },
+        tooltip: {
+          ...tooltipCommon,
+          trigger: "item",
+          formatter: (pr) => {
+            const d = pr.data;
+            return `${fmtMonth(d.date)}<br/>Unemployment <b>${d.value[0]}%</b><br/>Inflation <b>${d.value[1]}%</b>`;
+          },
+        },
+        xAxis: {
+          type: "value",
+          scale: true,
+          name: "Unemployment (%)",
+          nameLocation: "middle",
+          nameGap: 30,
+          ...axisCommon,
+          axisLabel: { ...axisCommon.axisLabel, formatter: "{value}%" },
+        },
+        yAxis: {
+          type: "value",
+          scale: true,
+          name: "Inflation, YoY (%)",
+          nameLocation: "middle",
+          nameGap: 42,
+          ...axisCommon,
+          axisLine: { show: false },
+          axisLabel: { ...axisCommon.axisLabel, formatter: "{value}%" },
+        },
+        series,
+      };
+    }
+
+    /** Decade legend — identity is never color-alone; shows the ordered progression. */
+    function decadeLegend(decades) {
+      const items = [el("span", { className: "pc-legend__caption", text: "Older" })];
+      decades.forEach((d, i) => {
+        if (i > 0) items.push(el("span", { className: "pc-legend__arrow", "aria-hidden": "true", text: "→" }));
+        items.push(
+          el("span", { className: "pc-legend__item" }, [
+            el("span", {
+              className: "pc-legend__swatch",
+              "aria-hidden": "true",
+              style: `background:${decadeColor(d)}`,
+            }),
+            decadeLabel(d),
+          ]),
+        );
+      });
+      items.push(el("span", { className: "pc-legend__caption", text: "Newer" }));
+      return el("div", { className: "pc-legend", role: "img", "aria-label": "Decade color legend, oldest to newest" }, items);
+    }
+
+    // --- Render -----------------------------------------------------------------
+    const root = document.getElementById("view-root");
+
+    (async function render() {
+      let data;
+      try {
+        const res = await fetch("/api/views/phillips");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        data = await res.json();
+      } catch (err) {
+        const banner = document.getElementById("error-banner");
+        banner.textContent = `Couldn't load the Phillips view: ${err.message}`;
+        banner.hidden = false;
+        mount(root, el("div", { className: "inline-note", text: "Data unavailable — the disclosure footer and chart require a successful data pull." }));
+        return;
+      }
+
+      // "Data as of" pill.
+      const pill = document.getElementById("asof-pill");
+      document.getElementById("asof-date").textContent = data.as_of;
+      pill.hidden = false;
+
+      // Ordered, de-duplicated decades present in the data.
+      const decades = [...new Set(data.points.map((p) => p.decade))].sort((a, b) => a - b);
+
+      // Chart container (ECharts needs measurable dimensions before init).
+      const chartEl = el("div", {
+        className: "chart chart--tall",
+        role: "img",
+        "aria-label": "Connected time-path of inflation versus unemployment, colored by decade.",
+      });
+
+      const card = el("div", { className: "card" }, [chartEl, decadeLegend(decades)]);
+      const section = el("div", { className: "section" }, [
+        sectionHeader({
+          title: "The Phillips path",
+          sub: "Monthly observations connected in time order — the curve loops and shifts across decades.",
+        }),
+        card,
+      ]);
+
+      // Compliance: the disclosure footer renders once, below the chart, always visible.
+      const meta = viewMeta({
+        sources: data.sources,
+        methodology: data.methodology,
+        disclaimer: data.disclaimer,
+        decisions: data.decisions,
+      });
+
+      mount(root, [section, meta]);
+
+      // Init chart after mount so it has dimensions; keep it responsive.
+      const chart = echarts.init(chartEl);
+      chart.setOption(pathOption(data.points, decades));
+      let raf = 0;
+      window.addEventListener("resize", () => {
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(() => chart.resize());
+      });
+    })();
+  </script>
+</body>
+</html>

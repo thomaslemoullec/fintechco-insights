@@ -5,9 +5,9 @@
 // instance lifecycle (dispose on route change, debounced resize).
 // =============================================================================
 import {
-  el, mount, statTile, indicatorCard, newsCard, emptyState, sectionHeader,
+  el, mount, statTile, indicatorCard, newsCard, emptyState, sectionHeader, segmented, viewMeta,
 } from "/assets/components.js";
-import { lineOption } from "/assets/charts.js";
+import { lineOption, pathOption, smallMultipleOption, scatterBounds, decadeColor } from "/assets/charts.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -169,6 +169,131 @@ async function renderMacro(root) {
   for (const [node, option] of chartMounts) renderChart(node, option);
 }
 
+// --- Financial Indicators → Inflation vs. Unemployment (Phillips) ------------
+// Two on-brand visualisations the viewer can switch between: a connected
+// time-path and small-multiples by decade. Selection is deterministic — a fixed
+// canonical default plus an explicit, per-browser user preference (no hidden
+// randomisation of a regulated figure). The toggle switches variants and records
+// the choice. The disclosure footer renders once, outside the swap region
+// (compliance).
+const PHILLIPS_VARIANTS = [
+  { id: "path", label: "Time-path" },
+  { id: "smallmultiples", label: "By decade" },
+];
+const PHILLIPS_PREF_KEY = "phillips_view_variant";
+const PHILLIPS_DEFAULT = "path"; // canonical variant
+
+// Deterministic default — NO hidden randomisation of a client-facing regulated figure
+// (SR 11-7 reproducibility; avoids CWE-330). The two variants are an explicit, user-
+// selectable view preference (not a randomised A/B split): every viewer sees the
+// canonical time-path unless they choose otherwise, and their explicit choice is
+// remembered per browser. A randomised experiment would require a governed framework
+// with a durable, server-side exposure log and sign-off — not present here.
+function preferredPhillipsVariant() {
+  try {
+    const stored = localStorage.getItem(PHILLIPS_PREF_KEY);
+    if (stored && PHILLIPS_VARIANTS.some((v) => v.id === stored)) return stored;
+  } catch { /* storage blocked */ }
+  return PHILLIPS_DEFAULT;
+}
+
+// Record the (user-driven, deterministic) view selection — a log + event so it can be
+// wired to a governed audit sink later. This is a preference signal, not a random bucket.
+function recordPhillipsSelection(variant, source) {
+  try {
+    console.info(`[view] phillips variant=${variant} source=${source}`);
+    window.dispatchEvent(new CustomEvent("phillips:view", { detail: { variant, source } }));
+  } catch { /* non-fatal */ }
+}
+
+// Ordered decade legend (oldest→newest) — identity is never colour-alone.
+function decadeLegend(decades) {
+  const items = [el("span", { className: "pc-legend__caption", text: "Older" })];
+  decades.forEach((d, i) => {
+    if (i > 0) items.push(el("span", { className: "pc-legend__arrow", "aria-hidden": "true", text: "→" }));
+    items.push(el("span", { className: "pc-legend__item" }, [
+      el("span", { className: "pc-legend__swatch", "aria-hidden": "true", style: `background:${decadeColor(d)}` }),
+      `${d}s`,
+    ]));
+  });
+  items.push(el("span", { className: "pc-legend__caption", text: "Newer" }));
+  return el("div", { className: "pc-legend", role: "img", "aria-label": "Decade colour legend, oldest to newest" }, items);
+}
+
+async function renderPhillips(root) {
+  const data = await getJSON("/api/views/phillips");
+  const decades = [...new Set(data.points.map((p) => p.decade))].sort((a, b) => a - b);
+  const pointsIn = (d) => data.points.filter((p) => p.decade === d);
+
+  // As-of pill reflects THIS view's vintage (latest month both series exist), not the
+  // boot-time UNRATE pill — the figure must state its own as-of date (AC2 / SR 11-7).
+  const pill = document.getElementById("asof-pill");
+  if (pill) {
+    const dateEl = document.getElementById("asof-date");
+    if (dateEl) dateEl.textContent = data.as_of;
+    pill.hidden = false;
+  }
+
+  let variant = preferredPhillipsVariant();
+
+  const section = el("section", { className: "section" });
+  section.appendChild(sectionHeader({
+    title: "Inflation vs. Unemployment",
+    sub: "Is the Phillips-curve tradeoff still holding? Monthly U.S. data since 1960, by decade.",
+  }));
+
+  section.appendChild(segmented({
+    options: PHILLIPS_VARIANTS,
+    selected: variant,
+    ariaLabel: "Chart style",
+    onChange: (id) => {
+      variant = id;
+      try { localStorage.setItem(PHILLIPS_PREF_KEY, id); } catch { /* non-fatal */ }
+      drawVariant(id, "toggle");
+    },
+  }));
+
+  const chartRegion = el("div", {});
+  section.appendChild(chartRegion);
+  root.appendChild(section);
+
+  // Compliance: disclosure footer rendered ONCE, outside the swap region, always visible.
+  root.appendChild(viewMeta({
+    asOf: data.as_of,
+    sources: data.sources,
+    methodology: data.methodology,
+    disclaimer: data.disclaimer,
+    decisions: data.decisions,
+  }));
+
+  function drawVariant(v, source) {
+    disposeCharts(); // tear down the previous variant's ECharts instances
+    if (v === "path") {
+      const chartEl = el("div", {
+        className: "chart chart--tall", role: "img",
+        "aria-label": "Connected time-path of inflation versus unemployment, coloured by decade.",
+      });
+      mount(chartRegion, el("div", { className: "card" }, [chartEl, decadeLegend(decades)]));
+      renderChart(chartEl, pathOption(data.points, decades));
+    } else {
+      const bounds = scatterBounds(data.points);
+      const targets = [];
+      const cards = decades.map((d) => {
+        const ce = el("div", { className: "chart chart--strip", role: "img", "aria-label": `Inflation vs. unemployment, ${d}s` });
+        targets.push([ce, d]);
+        return el("div", { className: "card indicator-card" }, [
+          el("h3", { className: "indicator-card__title", text: `${d}s` }), ce,
+        ]);
+      });
+      mount(chartRegion, el("div", { className: "card-grid" }, cards));
+      for (const [ce, d] of targets) renderChart(ce, smallMultipleOption(d, pointsIn(d), bounds));
+    }
+    recordPhillipsSelection(v, source);
+  }
+
+  drawVariant(variant, "default");
+}
+
 // --- Empty placeholder pages -------------------------------------------------
 function renderComingSoon(root, title, message) {
   root.appendChild(el("section", { className: "section" }, [emptyState({ title, message })]));
@@ -186,6 +311,7 @@ const renderMarkets = (root) =>
 const ROUTES = {
   "#/home": { title: "Home", render: renderHome },
   "#/indicators/macro": { title: "Financial Indicators · Macro", render: renderMacro },
+  "#/indicators/macro/phillips": { title: "Financial Indicators · Inflation vs. Unemployment", render: renderPhillips },
   "#/indicators/micro": { title: "Financial Indicators · Micro", render: renderMicro },
   "#/trends": { title: "Trends", render: renderTrends },
   "#/markets": { title: "Markets", render: renderMarkets },

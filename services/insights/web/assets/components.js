@@ -140,10 +140,21 @@ export function segmented({ options, selected, onChange, ariaLabel }) {
  * expandable "Methodology decisions" list. This is a client-facing compliance
  * requirement — any client-facing figure must render this disclosure footer.
  */
-export function viewMeta({ sources, methodology, disclaimer, decisions }) {
+export function viewMeta({ asOf, sources, methodology, disclaimer, decisions }) {
   const sourceList = el("ul", {}, (sources || []).map((s) => el("li", { text: s })));
 
-  const blocks = [
+  const blocks = [];
+
+  // Data as-of (vintage) — the figure's own vintage travels with it, so the disclosure
+  // is complete even if the top-bar pill is unavailable (client-facing requirement).
+  if (asOf) {
+    blocks.push(el("div", { className: "view-meta__block" }, [
+      el("p", { className: "view-meta__label", text: "Data as of" }),
+      el("p", { className: "view-meta__body", text: asOf }),
+    ]));
+  }
+
+  blocks.push(
     el("div", { className: "view-meta__block" }, [
       el("p", { className: "view-meta__label", text: "Sources" }),
       el("div", { className: "view-meta__body" }, [sourceList]),
@@ -152,7 +163,7 @@ export function viewMeta({ sources, methodology, disclaimer, decisions }) {
       el("p", { className: "view-meta__label", text: "Methodology" }),
       el("p", { className: "view-meta__body", text: methodology || "" }),
     ]),
-  ];
+  );
 
   // Expandable "Methodology decisions" — the analyst judgement calls.
   if (decisions && decisions.length) {

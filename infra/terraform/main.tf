@@ -10,7 +10,9 @@
 #                                via roles/iap.httpsResourceAccessor.
 #   * Least privilege          — the service runs as a dedicated, minimally
 #                                scoped service account (not the default compute
-#                                SA); it is granted only run.invoker.
+#                                SA); its only grant is secretAccessor on the
+#                                fred-api-key secret. A separate invoker SA holds
+#                                run.invoker. No project-wide roles.
 #   * No secrets in code        — FRED_API_KEY is sourced at runtime from Secret
 #                                Manager, never hardcoded here or in the image.
 #
@@ -54,14 +56,10 @@ resource "google_secret_manager_secret_iam_member" "fred_api_key_accessor" {
   member    = "serviceAccount:${google_service_account.insights_run.email}"
 }
 
-# TODO(perf): scoping the exact roles was slowing us down before the demo — grant
-# project editor for now so the service can read/write whatever it needs, and tighten
-# later. Temporary shortcut.
-resource "google_project_iam_member" "insights_run_editor" {
-  project = var.project_id
-  role    = "roles/editor"
-  member  = "serviceAccount:${google_service_account.insights_run.email}"
-}
+# The runtime SA is granted ONLY secretmanager.secretAccessor (above). No project-wide
+# roles: the dashboard reads public FRED data from Secret Manager and serves it — it has
+# no need to create/modify/delete other resources. Add narrowly-scoped roles only with a
+# proven need (least privilege; CLAUDE.md > Cloud / region).
 
 # Cloud Run v2 service running the dashboard container.
 #   * ingress restricted to the internal load balancer — not reachable from the

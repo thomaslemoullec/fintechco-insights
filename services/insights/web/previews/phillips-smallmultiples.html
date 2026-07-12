@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FinTechCo · Inflation vs. Unemployment — Small Multiples</title>
+  <meta name="description" content="Phillips curve preview — inflation vs. unemployment, small multiples by decade." />
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body>
+  <!-- On-brand app shell (see index.html): main pane only for this standalone preview. -->
+  <div class="app" style="grid-template-columns: 1fr;">
+    <main class="main">
+      <!-- Top bar: serif page title + "Data as of" pill (populated from payload). -->
+      <div class="topbar">
+        <h1 class="topbar__title">Inflation vs. Unemployment</h1>
+        <div class="asof-pill" id="asof-pill" hidden>
+          Data as of <span id="asof-date">—</span>
+        </div>
+      </div>
+
+      <!-- View content rendered here by the module below. -->
+      <div id="view-root" class="view"></div>
+    </main>
+  </div>
+
+  <!-- ECharts (vendored, Apache v5) exposes the global `echarts`; load before the module. -->
+  <script src="/assets/vendor/echarts.min.js"></script>
+  <script type="module">
+    import { THEME, decadeColor } from "/assets/charts.js";
+    import { el, mount, viewMeta, sectionHeader } from "/assets/components.js";
+
+    const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    // Format an ISO date (YYYY-MM-DD) as "Mar 1984" for tooltips (mirrors charts.js).
+    const fmtMonth = (iso) => {
+      const [y, m] = iso.split("-");
+      return `${MONTHS[Number(m) - 1]} ${y}`;
+    };
+
+    // Minimal, on-brand axis styling (mirrors charts.js axisCommon): muted labels,
+    // hairline axis line, dashed hairline gridlines — no chart junk.
+    const axis = {
+      axisLine: { lineStyle: { color: THEME.border } },
+      axisTick: { show: false },
+      axisLabel: { color: THEME.muted, fontFamily: THEME.fontSans, fontSize: 10, formatter: "{value}%" },
+      splitLine: { lineStyle: { color: THEME.border, type: "dashed" } },
+    };
+
+    // Build one small-multiple scatter panel for a single decade. All panels are
+    // handed the SAME bounds so their x/y scales are identical and comparable.
+    function panelOption(decade, pts, bounds) {
+      return {
+        textStyle: { color: THEME.ink, fontFamily: THEME.fontSans },
+        grid: { left: 36, right: 12, top: 10, bottom: 24 },
+        tooltip: {
+          backgroundColor: THEME.surface,
+          borderColor: THEME.border,
+          borderWidth: 1,
+          padding: [8, 12],
+          textStyle: { color: THEME.ink, fontFamily: THEME.fontSans, fontSize: 12 },
+          extraCssText: "box-shadow: 0 4px 16px rgba(25,25,23,.08); border-radius: 8px;",
+          formatter: (p) => {
+            const [u, i, date] = p.data; // [unemployment, inflation, isoDate]
+            return `${fmtMonth(date)}<br/>Unemployment <b>${u}%</b><br/>Inflation <b>${i}%</b>`;
+          },
+        },
+        // Shared scales across every panel for visual comparability.
+        xAxis: { type: "value", min: bounds.xMin, max: bounds.xMax, ...axis },
+        yAxis: { type: "value", min: bounds.yMin, max: bounds.yMax, ...axis, axisLine: { show: false } },
+        series: [
+          {
+            type: "scatter",
+            symbolSize: 6,
+            // Color encodes the ordered time-category (decade) only; identity is also
+            // carried by the per-panel title, so it is never color-alone.
+            itemStyle: { color: decadeColor(decade), opacity: 0.5 },
+            emphasis: { itemStyle: { opacity: 0.9, borderColor: THEME.surface, borderWidth: 1 } },
+            data: pts.map((p) => [p.unemployment, p.inflation, p.date]),
+          },
+        ],
+      };
+    }
+
+    // Nice, padded [min, max] for an axis given raw data extents.
+    function bound(min, max) {
+      const pad = (max - min) * 0.08 || 1;
+      return [Math.floor(min - pad), Math.ceil(max + pad)];
+    }
+
+    async function render() {
+      const root = document.getElementById("view-root");
+      let data;
+      try {
+        const res = await fetch("/api/views/phillips");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        data = await res.json();
+      } catch (err) {
+        // Degrade to an inline note rather than a blank screen (design convention).
+        mount(root, el("div", { className: "inline-note", text: `Could not load the view: ${err.message}` }));
+        return;
+      }
+
+      // "Data as of" pill.
+      document.getElementById("asof-date").textContent = data.as_of;
+      document.getElementById("asof-pill").hidden = false;
+
+      // Global axis bounds across ALL points → identical scales in every panel.
+      const us = data.points.map((p) => p.unemployment);
+      const is = data.points.map((p) => p.inflation);
+      const [xMin, xMax] = bound(Math.min(...us), Math.max(...us));
+      const [yMin, yMax] = bound(Math.min(...is), Math.max(...is));
+      const bounds = { xMin, xMax, yMin, yMax };
+
+      // Group points by decade, ascending.
+      const byDecade = new Map();
+      for (const p of data.points) {
+        if (!byDecade.has(p.decade)) byDecade.set(p.decade, []);
+        byDecade.get(p.decade).push(p);
+      }
+      const decades = [...byDecade.keys()].sort((a, b) => a - b);
+
+      // Build a card per decade inside a responsive grid.
+      const chartTargets = []; // { node, decade } — charts init after DOM layout.
+      const cards = decades.map((decade) => {
+        const chartEl = el("div", { className: "chart chart--strip", "aria-label": `Inflation vs. unemployment, ${decade}s` });
+        chartTargets.push({ node: chartEl, decade });
+        return el("div", { className: "card indicator-card" }, [
+          el("h3", { className: "indicator-card__title", text: `${decade}s` }),
+          chartEl,
+        ]);
+      });
+
+      // Assemble: section header + grid + compliance footer (rendered ONCE, always visible).
+      const section = el("div", { className: "section" }, [
+        sectionHeader({
+          title: "By decade",
+          sub: "Each panel shares the same axes — x: unemployment (%), y: inflation, YoY (%) — so decades are directly comparable.",
+        }),
+        el("div", { className: "card-grid" }, cards),
+      ]);
+      const footer = viewMeta({
+        sources: data.sources,
+        methodology: data.methodology,
+        disclaimer: data.disclaimer,
+        decisions: data.decisions,
+      });
+      mount(root, [section, footer]);
+
+      // One ECharts instance per panel (needs measurable dimensions → after mount).
+      const charts = chartTargets.map(({ node, decade }) => {
+        const chart = echarts.init(node);
+        chart.setOption(panelOption(decade, byDecade.get(decade), bounds));
+        return chart;
+      });
+
+      // Debounced resize so panels stay crisp (design convention).
+      let raf = 0;
+      window.addEventListener("resize", () => {
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(() => charts.forEach((c) => c.resize()));
+      });
+    }
+
+    render();
+  </script>
+</body>
+</html>
