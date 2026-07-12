@@ -6,8 +6,9 @@ done) live in the root [`CLAUDE.md`](../../CLAUDE.md). This file covers only ser
 ## Stack
 - Python 3.11+ / FastAPI. One process serves the JSON API (`/api/*`) and the static dashboard
   UI (`/`).
-- Data: economic series from FRED. Runs on committed **synthetic fixtures** until live API
-  access is provisioned (`FRED_LIVE=1` + `FRED_API_KEY` switch on the real pull).
+- Data: economic series from FRED, cached as committed CSVs in `app/data/`. `make fetch`
+  (or `FRED_LIVE=1`) refreshes from the live API using `FRED_API_KEY` (from Secret Manager);
+  `scripts/gen_fixtures.py` is an offline synthetic fallback.
 
 ## Layout
 - `app/main.py` — FastAPI entrypoint; mounts the API router and serves `web/`.
