@@ -1,0 +1,10 @@
+# Keep the Cloud Build upload small; committed CSV fixtures are NOT ignored (needed at runtime).
+.git/
+.venv/
+_internal/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.bundle
+node_modules/
