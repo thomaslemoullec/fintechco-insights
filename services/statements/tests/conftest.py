@@ -3,14 +3,8 @@
   customer 1 "Alice Rivera" owns account 1 (4000000000000001)
   customer 2 "Bob Chen"     owns account 2 (4000000000000002)
 """
-import os
-import tempfile
-
-# Point exports at a scratch dir before the app modules read the env at import time.
-os.environ.setdefault("EXPORT_DIR", os.path.join(tempfile.mkdtemp(), "exports"))
-
-import pytest  # noqa: E402
-from fastapi.testclient import TestClient  # noqa: E402
+import pytest
+from fastapi.testclient import TestClient
 
 
 def _seed() -> None:
@@ -38,6 +32,15 @@ def _seed() -> None:
     )
     conn.commit()
     conn.close()
+
+
+@pytest.fixture(autouse=True)
+def _stub_gcs_upload(monkeypatch):
+    # Tests never hit real GCS/credentials — the upload boundary is stubbed the
+    # same way the DB path is, below.
+    from app import transactions
+
+    monkeypatch.setattr(transactions, "_upload_statement", lambda fname, content: None)
 
 
 @pytest.fixture

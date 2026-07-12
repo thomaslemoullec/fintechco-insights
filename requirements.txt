@@ -1,3 +1,4 @@
 # Runtime dependencies for the statements service.
 fastapi>=0.110
 uvicorn[standard]>=0.29
+google-cloud-storage>=2.16

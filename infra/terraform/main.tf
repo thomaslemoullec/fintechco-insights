@@ -13,15 +13,36 @@ provider "google" {
   region  = var.region
 }
 
+# CMEK for the statements bucket (AC2). Location "us" matches the bucket's "US"
+# multi-region so the key can be used to encrypt objects in it.
+resource "google_kms_key_ring" "statements" {
+  name     = "statements-keyring"
+  project  = var.project_id
+  location = "us"
+}
+
+resource "google_kms_crypto_key" "statements" {
+  name            = "statements-cmek"
+  key_ring        = google_kms_key_ring.statements.id
+  rotation_period = "7776000s" # 90 days
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+# GCS's own service agent needs encrypt/decrypt on the key to use it as CMEK.
+data "google_storage_project_service_account" "gcs" {
+  project = var.project_id
+}
+
+resource "google_kms_crypto_key_iam_member" "gcs_can_use_statements_key" {
+  crypto_key_id = google_kms_crypto_key.statements.id
+  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+  member        = "serviceAccount:${data.google_storage_project_service_account.gcs.email_address}"
+}
+
 # Bucket for exported customer statements. Statements contain NPI (see PAY ticket AC2).
-#
-# DEMO-SEED 3a (no CMEK): this bucket has NO customer-managed encryption key. It falls
-#   back to Google-managed keys. AC2 requires CMEK. tfsec flags this
-#   (google-storage-bucket-encryption-customer-key). The fix adds an `encryption` block.
-#
-# DEMO-SEED 3b (over-broad IAM): the binding below grants read to `allUsers` — the
-#   statements bucket is effectively PUBLIC. AC2 requires least privilege (only the
-#   statements-service identity). tfsec flags this (google-storage-no-public-access).
 resource "google_storage_bucket" "statements" {
   name                        = "fintechco-customer-statements"
   project                     = var.project_id
@@ -29,13 +50,25 @@ resource "google_storage_bucket" "statements" {
   uniform_bucket_level_access = true
   force_destroy               = false
 
-  # DEMO-SEED 3a: no CMEK key is configured on this bucket. Falls back to a
-  #   Google-managed key, which does not satisfy AC2. The fix adds a CMEK encryption block.
+  encryption {
+    default_kms_key_name = google_kms_crypto_key.statements.id
+  }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
-# DEMO-SEED 3b: public/over-broad IAM binding on a bucket holding customer NPI.
-resource "google_storage_bucket_iam_member" "statements_public_read" {
+# Least privilege: only the statements-service runtime identity may read/write
+# the bucket. No public or broad-authenticated-user bindings (AC2).
+resource "google_storage_bucket_iam_member" "statements_service_read" {
   bucket = google_storage_bucket.statements.name
   role   = "roles/storage.objectViewer"
-  member = "allUsers"
+  member = "serviceAccount:${var.statements_service_sa}"
+}
+
+resource "google_storage_bucket_iam_member" "statements_service_write" {
+  bucket = google_storage_bucket.statements.name
+  role   = "roles/storage.objectCreator"
+  member = "serviceAccount:${var.statements_service_sa}"
 }
