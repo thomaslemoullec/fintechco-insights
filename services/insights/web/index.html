@@ -7,66 +7,51 @@
   <meta name="description" content="Internal economic-indicators dashboard — inflation, unemployment and the federal funds rate, plus the Phillips-curve relationship over time." />
   <link rel="stylesheet" href="/assets/styles.css" />
 </head>
-<body data-palette="#B15C3F,#CC785C,#D9A066,#C9B458,#7FA47B,#5B8AA6,#3E5C76">
-  <!-- Error banner: shown (un-hidden) by app.js if a fetch fails. Never a blank page. -->
+<body>
+  <!-- Error banner: un-hidden by app.js if a fetch fails. Never a blank page. -->
   <div id="error-banner" class="error-banner" role="alert" hidden></div>
 
-  <header class="site-header">
-    <div class="brand">
-      <p class="eyebrow">FinTechCo</p>
-      <h1 class="product">Macro Insights</h1>
-    </div>
-    <!-- "Data as of" pill; populated from /api/views/phillips as_of. -->
-    <div class="asof-pill" id="asof-pill" hidden>
-      Data as of <span id="asof-date">—</span>
-    </div>
-  </header>
+  <!-- App shell: fixed sidebar nav + scrolling main pane. -->
+  <div class="app">
+    <!-- ===================== Sidebar nav ===================== -->
+    <aside class="sidebar">
+      <a class="wordmark" href="#/home">
+        <span class="wordmark__brand">FinTechCo</span>
+        <span class="wordmark__product">Macro Insights</span>
+      </a>
 
-  <main class="page">
-    <!-- Section A — Key indicators (existing dashboard) -->
-    <section class="section" id="section-indicators" aria-labelledby="indicators-heading">
-      <div class="section-header">
-        <h2 class="section-title" id="indicators-heading">Key indicators</h2>
-        <p class="section-sub">Full monthly history, 1961–2024 · U.S. series via FRED</p>
-      </div>
-      <div class="card-grid" id="indicator-grid">
-        <!-- Indicator cards injected by app.js -->
-      </div>
-    </section>
+      <!-- Client-side hash routes. app.js toggles .is-active on route change.
+           Every link's href IS the route; data-route mirrors it for matching. -->
+      <nav class="nav" aria-label="Primary">
+        <a class="nav__link" data-route="#/home" href="#/home">Home</a>
 
-    <!-- Section B — Inflation vs. Unemployment (Phillips Curve), the centerpiece -->
-    <section class="section" id="section-phillips" aria-labelledby="phillips-heading">
-      <div class="section-header">
-        <h2 class="section-title" id="phillips-heading">Inflation vs. Unemployment (Phillips Curve)</h2>
-        <p class="section-sub lede" id="phillips-summary">Loading…</p>
-      </div>
-
-      <div class="card phillips-card">
-        <!-- Segmented toggle: three treatments of the same data -->
-        <div class="chart-toolbar">
-          <div id="phillips-toggle" aria-label="Chart treatment">
-            <!-- Segmented toggle injected by app.js -->
-          </div>
-          <p class="chart-caption" id="phillips-caption"></p>
+        <div class="nav__group">
+          <p class="nav__group-label">Financial Indicators</p>
+          <a class="nav__link nav__link--sub" data-route="#/indicators/macro" href="#/indicators/macro">Macro</a>
+          <a class="nav__link nav__link--sub" data-route="#/indicators/micro" href="#/indicators/micro">Micro</a>
         </div>
-        <div class="chart chart--tall" id="phillips-chart" role="img" aria-label="Phillips curve chart"></div>
-      </div>
 
-      <!-- Correlation-by-decade strip: makes the trend toward zero explicit -->
-      <div class="card">
-        <div class="section-header section-header--tight">
-          <h3 class="subsection-title">Correlation by decade</h3>
-          <p class="section-sub">Pearson correlation of inflation vs. unemployment, per calendar decade. A strong negative early relationship decays toward zero.</p>
+        <a class="nav__link" data-route="#/trends" href="#/trends">Trends</a>
+        <a class="nav__link" data-route="#/markets" href="#/markets">Markets</a>
+      </nav>
+
+      <p class="sidebar__foot">Internal research tool · US data via FRED</p>
+    </aside>
+
+    <!-- ===================== Main pane ===================== -->
+    <main class="main">
+      <div class="topbar">
+        <h1 class="topbar__title" id="page-title">Home</h1>
+        <!-- "Data as of" pill; populated from /api/views/phillips as_of. -->
+        <div class="asof-pill" id="asof-pill" hidden>
+          Data as of <span id="asof-date">—</span>
         </div>
-        <div class="chart chart--strip" id="corr-strip" role="img" aria-label="Correlation by decade bar chart"></div>
       </div>
 
-      <!-- Compliance-required metadata footer: sources, methodology, disclaimer -->
-      <footer class="view-meta" id="phillips-meta" aria-label="Data provenance and disclaimer">
-        <!-- Injected by app.js -->
-      </footer>
-    </section>
-  </main>
+      <!-- Active view is rendered here by app.js on every route change. -->
+      <div id="view-root" class="view"></div>
+    </main>
+  </div>
 
   <!-- ECharts (vendored, Apache v5) exposes the global `echarts`; load before the module. -->
   <script src="/assets/vendor/echarts.min.js"></script>

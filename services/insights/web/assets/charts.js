@@ -1,8 +1,8 @@
 // =============================================================================
 // charts.js — ECharts option builders, themed to the design tokens.
 // Depends on the global `echarts` (loaded via <script> in index.html).
-// Chart philosophy (see DESIGN.md): no chart junk — light gridlines, muted axis
-// labels, restrained tooltips, colors drawn from the shared tokens.
+// Chart philosophy (see DESIGN.md): no chart junk — hairline gridlines, muted
+// axis labels, white tooltips, ~0.5 scatter opacity. Color ONLY encodes decade.
 // =============================================================================
 
 /* --- Design tokens mirrored for the canvas (JS can't read CSS vars for ECharts). --- */
@@ -14,8 +14,8 @@ export const THEME = {
   accent: "#CC785C",
   accentStrong: "#B15C3F",
   fontSans: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
-  // Decade ramp, oldest→newest (warm→cool). Index 0 = 1960s … index 6 = 2020s.
-  decadeRamp: ["#B15C3F", "#CC785C", "#D9A066", "#C9B458", "#7FA47B", "#5B8AA6", "#3E5C76"],
+  // Decade ramp, oldest→newest (warm→cool). Index 0 = 1960s … index 7 = 2030s.
+  decadeRamp: ["#B15C3F", "#CC785C", "#D9A066", "#C9B458", "#7FA47B", "#5B8AA6", "#3E5C76", "#2E4257"],
 };
 
 /** Map a decade (e.g. 1980) to its ramp color. Falls back to accent. */
@@ -44,15 +44,36 @@ const tooltipCommon = {
   extraCssText: "box-shadow: 0 4px 16px rgba(25,25,23,.08); border-radius: 8px;",
 };
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
 /** Format an ISO date (YYYY-MM-DD) as e.g. "Mar 1984" for tooltips. */
 function fmtMonth(iso) {
   const [y, m] = iso.split("-");
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${months[Number(m) - 1]} ${y}`;
+  return `${MONTHS[Number(m) - 1]} ${y}`;
+}
+
+/** Signed, fixed-precision helper for slopes / correlations. */
+function signed(n, digits = 2) {
+  return (n > 0 ? "+" : "") + Number(n).toFixed(digits);
+}
+
+/**
+ * Endpoints of a fitted line y = slope*x + intercept spanning a decade's actual
+ * unemployment range, so the fit only extends across observed data.
+ */
+function fitLine(points, decade, slope, intercept) {
+  const xs = points.filter((p) => p.decade === decade).map((p) => p.unemployment);
+  if (!xs.length) return [];
+  const xMin = Math.min(...xs);
+  const xMax = Math.max(...xs);
+  return [
+    [xMin, slope * xMin + intercept],
+    [xMax, slope * xMax + intercept],
+  ];
 }
 
 // -----------------------------------------------------------------------------
-// Section A — compact line chart for a single indicator series.
+// Compact line chart for a single indicator series (Macro cards + Home tiles).
 // -----------------------------------------------------------------------------
 export function lineOption(series, indicator) {
   const dates = series.points.map((p) => p.date);
@@ -75,7 +96,11 @@ export function lineOption(series, indicator) {
       boundaryGap: false,
       ...axisCommon,
       splitLine: { show: false },
-      axisLabel: { ...axisCommon.axisLabel, formatter: (v) => v.slice(0, 4), interval: (i, v) => v.endsWith("-01-01") && Number(v.slice(0, 4)) % 20 === 0 },
+      axisLabel: {
+        ...axisCommon.axisLabel,
+        formatter: (v) => v.slice(0, 4),
+        interval: (i, v) => v.endsWith("-01-01") && Number(v.slice(0, 4)) % 20 === 0,
+      },
     },
     yAxis: {
       type: "value",
@@ -103,20 +128,40 @@ export function lineOption(series, indicator) {
 }
 
 // -----------------------------------------------------------------------------
-// Section B, treatment 1 — "By decade": scatter colored by decade, legend by decade.
+// Treatment 1 (A/B variant A) — "By decade": scatter colored by decade, with a
+// decade legend and a light per-decade fit line (slope/intercept from stats).
 // -----------------------------------------------------------------------------
 export function scatterByDecadeOption(view) {
   const decades = [...new Set(view.points.map((p) => p.decade))].sort((a, b) => a - b);
-  // One series per decade so the legend and per-series color work naturally.
-  const series = decades.map((decade) => ({
+  const statsByDecade = Object.fromEntries((view.decade_stats || []).map((s) => [s.decade, s]));
+
+  const pointSeries = decades.map((decade) => ({
     name: `${decade}s`,
     type: "scatter",
     symbolSize: 7,
-    itemStyle: { color: decadeColor(decade), opacity: 0.55 }, // subtle opacity for overplotting
+    itemStyle: { color: decadeColor(decade), opacity: 0.5 }, // subtle opacity for overplotting
     emphasis: { itemStyle: { opacity: 0.95, borderColor: THEME.surface, borderWidth: 1 } },
     // [unemployment (x), inflation (y), date] — date carried for the tooltip.
     data: view.points.filter((p) => p.decade === decade).map((p) => [p.unemployment, p.inflation, p.date]),
   }));
+
+  // Light per-decade fit lines (only where we reported stats for that decade).
+  const fitSeries = decades
+    .filter((decade) => statsByDecade[decade])
+    .map((decade) => {
+      const s = statsByDecade[decade];
+      return {
+        name: `${decade}s`, // share legend entry with its scatter so toggling hides both
+        type: "line",
+        data: fitLine(view.points, decade, s.slope, s.intercept),
+        showSymbol: false,
+        silent: true,
+        lineStyle: { color: decadeColor(decade), width: 1.5, opacity: 0.45 },
+        tooltip: { show: false },
+        z: 1,
+      };
+    });
+
   return {
     textStyle: baseTextStyle,
     color: decades.map(decadeColor),
@@ -133,23 +178,90 @@ export function scatterByDecadeOption(view) {
       ...tooltipCommon,
       trigger: "item",
       formatter: (p) =>
-        `${fmtMonth(p.data[2])} · <b>${p.seriesName}</b><br/>` +
-        `Unemployment <b>${p.data[0]}%</b><br/>Inflation <b>${p.data[1]}%</b>`,
+        p.componentSubType !== "scatter"
+          ? ""
+          : `${fmtMonth(p.data[2])} · <b>${p.seriesName}</b><br/>` +
+            `Unemployment <b>${p.data[0]}%</b><br/>Inflation <b>${p.data[1]}%</b>`,
     },
     xAxis: { type: "value", name: "Unemployment (%)", nameLocation: "middle", nameGap: 30, scale: true, ...axisCommon },
     yAxis: { type: "value", name: "Inflation (%)", nameLocation: "middle", nameGap: 38, scale: true, ...axisCommon },
-    series,
+    series: [...pointSeries, ...fitSeries],
   };
 }
 
 // -----------------------------------------------------------------------------
-// Section B, treatment 2 — "Small multiples": one mini scatter per decade.
-// Built with an array of grids/axes so each panel is independently framed; the
-// flattening is visible panel-to-panel via the per-panel correlation label.
+// Treatment 2 (A/B variant B) — "Then vs now": the money chart. Two point clouds
+// (then.decade vs now.decade), each with its fitted line; one steep, one flat —
+// the flattening made obvious. Each fit line is annotated with its slope.
+// -----------------------------------------------------------------------------
+export function thenVsNowOption(view) {
+  const { then, now } = view;
+
+  const cloud = (stat) => ({
+    name: `${stat.decade}s`,
+    type: "scatter",
+    symbolSize: 8,
+    itemStyle: { color: decadeColor(stat.decade), opacity: 0.5 },
+    emphasis: { itemStyle: { opacity: 0.95, borderColor: THEME.surface, borderWidth: 1 } },
+    data: view.points.filter((p) => p.decade === stat.decade).map((p) => [p.unemployment, p.inflation, p.date]),
+    z: 2,
+  });
+
+  const fit = (stat) => ({
+    name: `${stat.decade}s`,
+    type: "line",
+    data: fitLine(view.points, stat.decade, stat.slope, stat.intercept),
+    showSymbol: false,
+    silent: true,
+    lineStyle: { color: decadeColor(stat.decade), width: 2.5 },
+    tooltip: { show: false },
+    z: 3,
+    // Annotate the line end with the decade slope — the headline number.
+    endLabel: {
+      show: true,
+      formatter: `${stat.decade}s · slope ${signed(stat.slope)}`,
+      color: decadeColor(stat.decade),
+      fontFamily: THEME.fontSans,
+      fontSize: 12,
+      fontWeight: 600,
+      backgroundColor: "rgba(255,255,255,0.85)",
+      padding: [2, 4],
+    },
+  });
+
+  return {
+    textStyle: baseTextStyle,
+    grid: { left: 56, right: 90, top: 16, bottom: 56 }, // extra right pad for end labels
+    legend: {
+      data: [`${then.decade}s`, `${now.decade}s`],
+      bottom: 0,
+      icon: "circle",
+      itemWidth: 9,
+      itemHeight: 9,
+      textStyle: { color: THEME.muted, fontFamily: THEME.fontSans, fontSize: 12 },
+    },
+    tooltip: {
+      ...tooltipCommon,
+      trigger: "item",
+      formatter: (p) =>
+        p.componentSubType !== "scatter"
+          ? ""
+          : `${fmtMonth(p.data[2])} · <b>${p.seriesName}</b><br/>` +
+            `Unemployment <b>${p.data[0]}%</b><br/>Inflation <b>${p.data[1]}%</b>`,
+    },
+    xAxis: { type: "value", name: "Unemployment (%)", nameLocation: "middle", nameGap: 30, scale: true, ...axisCommon },
+    yAxis: { type: "value", name: "Inflation (%)", nameLocation: "middle", nameGap: 38, scale: true, ...axisCommon },
+    series: [cloud(then), cloud(now), fit(then), fit(now)],
+  };
+}
+
+// -----------------------------------------------------------------------------
+// Treatment 3 — "Small multiples": one mini scatter per decade in decade_stats,
+// each labeled "{decade}s · slope {slope}", on shared scales so panels compare.
 // -----------------------------------------------------------------------------
 export function smallMultiplesOption(view) {
-  const decades = [...new Set(view.points.map((p) => p.decade))].sort((a, b) => a - b);
-  const corrByDecade = Object.fromEntries(view.decade_correlations.map((d) => [d.decade, d.correlation]));
+  const stats = [...(view.decade_stats || [])].sort((a, b) => a.decade - b.decade);
+  const decades = stats.map((s) => s.decade);
 
   // Shared scales across panels so panels are visually comparable.
   const xs = view.points.map((p) => p.unemployment);
@@ -158,9 +270,9 @@ export function smallMultiplesOption(view) {
   const yMax = Math.ceil(Math.max(...ys));
   const yMin = Math.floor(Math.min(...ys));
 
-  const cols = Math.min(4, decades.length);
+  const cols = Math.min(4, decades.length || 1);
   const rows = Math.ceil(decades.length / cols);
-  const padL = 4, padR = 3, padT = 12, padB = 4, gapX = 4, gapY = 12; // percentages
+  const padL = 4, padR = 3, padT = 12, padB = 4, gapX = 4, gapY = 14; // percentages
   const cellW = (100 - padL - padR - (cols - 1) * gapX) / cols;
   const cellH = (100 - padT - padB - (rows - 1) * gapY) / rows;
 
@@ -170,7 +282,8 @@ export function smallMultiplesOption(view) {
   const series = [];
   const titles = [];
 
-  decades.forEach((decade, i) => {
+  stats.forEach((s, i) => {
+    const decade = s.decade;
     const r = Math.floor(i / cols);
     const c = i % cols;
     const left = padL + c * (cellW + gapX);
@@ -190,14 +303,19 @@ export function smallMultiplesOption(view) {
       itemStyle: { color: decadeColor(decade), opacity: 0.5 },
       data: view.points.filter((p) => p.decade === decade).map((p) => [p.unemployment, p.inflation, p.date]),
     });
+    // Light per-panel fit line so the slope is visible, not just labelled.
+    series.push({
+      type: "line", xAxisIndex: i, yAxisIndex: i, silent: true, showSymbol: false,
+      data: fitLine(view.points, decade, s.slope, s.intercept),
+      lineStyle: { color: decadeColor(decade), width: 1.5, opacity: 0.6 },
+      tooltip: { show: false },
+    });
 
-    const corr = corrByDecade[decade];
-    const corrStr = corr == null ? "n/a" : (corr > 0 ? "+" : "") + corr.toFixed(2);
     titles.push({
       text: `${decade}s`,
-      subtext: `r = ${corrStr}`,
+      subtext: `slope ${signed(s.slope)}`,
       left: `${left}%`,
-      top: `${Math.max(top - 9, 0)}%`,
+      top: `${Math.max(top - 10, 0)}%`,
       textStyle: { color: THEME.ink, fontFamily: THEME.fontSans, fontSize: 13, fontWeight: 600 },
       subtextStyle: { color: decadeColor(decade), fontFamily: THEME.fontSans, fontSize: 11 },
     });
@@ -212,71 +330,21 @@ export function smallMultiplesOption(view) {
     tooltip: {
       ...tooltipCommon,
       trigger: "item",
-      formatter: (p) => `${fmtMonth(p.data[2])}<br/>Unemployment <b>${p.data[0]}%</b><br/>Inflation <b>${p.data[1]}%</b>`,
+      formatter: (p) =>
+        p.componentSubType !== "scatter"
+          ? ""
+          : `${fmtMonth(p.data[2])}<br/>Unemployment <b>${p.data[0]}%</b><br/>Inflation <b>${p.data[1]}%</b>`,
     },
     series,
   };
 }
 
 // -----------------------------------------------------------------------------
-// Section B, treatment 3 — "Over time": time-ordered connected scatter, color
-// graded by time (warm→cool). Shows the loops collapsing toward a flat cloud.
+// "Correlation by decade" horizontal bar strip (from decade_stats). Each bar is
+// colored by its decade; a zero reference line makes the trend toward zero read.
 // -----------------------------------------------------------------------------
-export function overTimeOption(view) {
-  // Points are already date-ordered from the API. Third dim = time index (for grading).
-  const data = view.points.map((p, i) => [p.unemployment, p.inflation, i, p.date]);
-  const n = data.length;
-  const firstYear = view.points[0].date.slice(0, 4);
-  const lastYear = view.points[n - 1].date.slice(0, 4);
-
-  return {
-    textStyle: baseTextStyle,
-    grid: { left: 56, right: 24, top: 16, bottom: 72 },
-    // Continuous time gradient legend along the bottom.
-    visualMap: {
-      type: "continuous",
-      min: 0,
-      max: n - 1,
-      dimension: 2,
-      orient: "horizontal",
-      bottom: 4,
-      left: "center",
-      itemWidth: 14,
-      itemHeight: 200,
-      calculable: false,
-      text: [lastYear, firstYear],
-      textStyle: { color: THEME.muted, fontFamily: THEME.fontSans, fontSize: 12 },
-      inRange: { color: THEME.decadeRamp },
-    },
-    tooltip: {
-      ...tooltipCommon,
-      trigger: "item",
-      formatter: (p) => `${fmtMonth(p.data[3])}<br/>Unemployment <b>${p.data[0]}%</b><br/>Inflation <b>${p.data[1]}%</b>`,
-    },
-    xAxis: { type: "value", name: "Unemployment (%)", nameLocation: "middle", nameGap: 30, scale: true, ...axisCommon },
-    yAxis: { type: "value", name: "Inflation (%)", nameLocation: "middle", nameGap: 38, scale: true, ...axisCommon },
-    series: [
-      {
-        type: "line",
-        data,
-        showSymbol: true,
-        symbolSize: 5,
-        // The connecting line is faint so the point cloud dominates; visualMap
-        // colors both line segments and symbols by time.
-        lineStyle: { width: 1, opacity: 0.35 },
-        itemStyle: { opacity: 0.75 },
-      },
-    ],
-  };
-}
-
-// -----------------------------------------------------------------------------
-// Section B — "Correlation by decade" horizontal bar strip.
-// Diverging sense around zero; each bar colored by its decade. Makes the trend
-// toward zero explicit.
-// -----------------------------------------------------------------------------
-export function correlationStripOption(decadeCorrelations) {
-  const rows = [...decadeCorrelations].sort((a, b) => a.decade - b.decade);
+export function correlationStripOption(decadeStats) {
+  const rows = [...(decadeStats || [])].sort((a, b) => a.decade - b.decade);
   const categories = rows.map((d) => `${d.decade}s`);
   return {
     textStyle: baseTextStyle,
@@ -286,7 +354,7 @@ export function correlationStripOption(decadeCorrelations) {
       trigger: "item",
       formatter: (p) => {
         const row = rows[p.dataIndex];
-        return `<b>${categories[p.dataIndex]}</b><br/>Correlation <b>${row.correlation > 0 ? "+" : ""}${row.correlation}</b><br/>${row.months} months`;
+        return `<b>${categories[p.dataIndex]}</b><br/>Correlation <b>${signed(row.correlation)}</b><br/>${row.months} months`;
       },
     },
     xAxis: {
@@ -313,7 +381,7 @@ export function correlationStripOption(decadeCorrelations) {
         label: {
           show: true,
           position: "right",
-          formatter: (p) => (p.value > 0 ? "+" : "") + p.value.toFixed(2),
+          formatter: (p) => signed(p.value),
           color: THEME.muted,
           fontFamily: THEME.fontSans,
           fontSize: 12,

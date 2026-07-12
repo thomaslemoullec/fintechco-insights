@@ -16,7 +16,10 @@ setup: $(VENV) ## Install dependencies and seed fixtures
 	$(PIP) install -q -r requirements-dev.txt
 	$(PY) scripts/gen_fixtures.py
 
-seed: ## (Re)generate the synthetic FRED fixtures (deterministic)
+fetch: ## Refresh the FRED series cache from the live API (needs FRED_API_KEY)
+	$(PY) scripts/fetch_fred.py
+
+seed: ## Generate synthetic FRED fixtures (offline fallback, deterministic)
 	$(PY) scripts/gen_fixtures.py
 
 dev: ## Run the app (API + dashboard UI) at http://127.0.0.1:8000
