@@ -5,9 +5,9 @@
 // instance lifecycle (dispose on route change, debounced resize).
 // =============================================================================
 import {
-  el, mount, statTile, indicatorCard, newsCard, emptyState, sectionHeader,
+  el, mount, statTile, indicatorCard, newsCard, emptyState, sectionHeader, viewMeta, segmented,
 } from "/assets/components.js";
-import { lineOption } from "/assets/charts.js";
+import { lineOption, scatterOption, smallMultiplesOption } from "/assets/charts.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -16,6 +16,13 @@ const INDICATOR_ORDER = [
   { id: "INFLATION", label: "Inflation (CPI, YoY)" },
   { id: "UNRATE", label: "Unemployment" },
   { id: "FEDFUNDS", label: "Fed Funds" },
+];
+
+// Chart-style toggle for the Inflation-vs-Unemployment relationship panel.
+const RELATION_VIEWS = [
+  { id: "scatter", label: "By decade", build: (pts) => scatterOption(pts) },
+  { id: "trend", label: "With trend", build: (pts) => scatterOption(pts, { trend: true }) },
+  { id: "grid", label: "Small multiples", build: (pts) => smallMultiplesOption(pts) },
 ];
 
 // -----------------------------------------------------------------------------
@@ -167,6 +174,65 @@ async function renderMacro(root) {
   }
   // Render after cards are in the DOM (ECharts needs measurable dimensions).
   for (const [node, option] of chartMounts) renderChart(node, option);
+
+  // Compliance requirement: every client-facing figure carries sources/methodology/
+  // disclaimer — one shared footer covers all three indicator cards above.
+  cardsSection.appendChild(viewMeta({
+    sources: [...new Set(INDICATOR_ORDER.map(({ id }) => seriesById[id].indicator.source))],
+    methodology: INDICATOR_ORDER.map(({ id }) => seriesById[id].methodology).join(" "),
+    disclaimer: seriesById[INDICATOR_ORDER[0].id].disclaimer,
+  }));
+
+  // --- Inflation vs. Unemployment: relationship view, three chart styles behind a toggle. --
+  const relationSection = el("section", { className: "section" });
+  relationSection.appendChild(sectionHeader({
+    title: "Inflation vs. Unemployment",
+    sub: "Monthly pairs since the 1960s, colored by decade",
+  }));
+  const relationCard = el("div", { className: "card" });
+  relationSection.appendChild(relationCard);
+  root.appendChild(relationSection);
+
+  try {
+    const phillips = await getJSON("/api/views/phillips-curve");
+
+    const chartEl = el("div", { className: "chart chart--tall" });
+    const caption = el("p", { className: "chart-caption", hidden: true });
+
+    function renderRelation(viewId) {
+      const view = RELATION_VIEWS.find((v) => v.id === viewId) || RELATION_VIEWS[0];
+      renderChart(chartEl, view.build(phillips.points));
+      chartEl.setAttribute("aria-label", `Inflation vs. unemployment — ${view.label}`);
+      const notes = {
+        trend: "Dashed line: an ordinary least-squares fit across the full sample — describes the average historical slope, not a forecast.",
+        grid: "Panels share the same axis scale so decades are directly comparable.",
+      };
+      caption.textContent = notes[view.id] || "";
+      caption.hidden = !notes[view.id];
+    }
+
+    const toolbar = el("div", { className: "chart-toolbar" }, [
+      segmented({
+        options: RELATION_VIEWS.map(({ id, label }) => ({ id, label })),
+        selected: RELATION_VIEWS[0].id,
+        onChange: renderRelation,
+        ariaLabel: "Chart style",
+      }),
+    ]);
+
+    mount(relationCard, [toolbar, chartEl, caption]);
+    renderRelation(RELATION_VIEWS[0].id);
+
+    relationSection.appendChild(viewMeta({
+      sources: phillips.sources,
+      methodology: phillips.methodology,
+      disclaimer: phillips.disclaimer,
+      decisions: phillips.decisions,
+    }));
+  } catch (e) {
+    console.warn("phillips-curve view unavailable:", e);
+    mount(relationCard, inlineNote("The inflation-vs-unemployment view is unavailable right now."));
+  }
 }
 
 // --- Empty placeholder pages -------------------------------------------------

@@ -18,5 +18,17 @@ def test_indicators_lists_known_series(client):
 def test_series_ok_and_unknown(client):
     ok = client.get("/api/series/INFLATION")
     assert ok.status_code == 200
-    assert ok.json()["as_of"] and ok.json()["points"]
+    body = ok.json()
+    assert body["as_of"] and body["points"]
+    assert body["methodology"] and body["disclaimer"]
     assert client.get("/api/series/NOPE").status_code == 404
+
+
+def test_phillips_curve_view(client):
+    res = client.get("/api/views/phillips-curve")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["as_of"] and body["sources"] and body["methodology"] and body["disclaimer"]
+    assert body["points"]
+    point = body["points"][0]
+    assert {"date", "inflation", "unemployment", "decade"} <= point.keys()

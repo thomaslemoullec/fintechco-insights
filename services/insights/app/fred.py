@@ -18,6 +18,10 @@ import pandas as pd
 
 logger = logging.getLogger("insights.fred")
 
+# httpx logs each request's full URL at INFO by default — our request carries api_key as a
+# query param (FRED's API only accepts it that way), so that logger must never reach INFO.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 _DATA_DIR = Path(__file__).resolve().parent / "data"
 _FRED_URL = "https://api.stlouisfed.org/fred/series/observations"
 
@@ -36,9 +40,16 @@ class FredClient:
             df = self._fetch(series_id)
             self.data_dir.mkdir(parents=True, exist_ok=True)
             df.to_csv(cache, index=False)
+            origin = "live FRED API"
         else:
             df = pd.read_csv(cache, parse_dates=["DATE"])
+            origin = "cached fixture"
 
+        as_of = df["DATE"].max().date().isoformat()
+        logger.info(
+            "provenance: series=%s rows=%d as_of=%s source=%s",
+            series_id, len(df), as_of, origin,
+        )
         return df
 
     def _fetch(self, series_id: str) -> pd.DataFrame:
@@ -51,8 +62,17 @@ class FredClient:
         import httpx
 
         params = {"series_id": series_id, "api_key": self.api_key, "file_type": "json"}
-        resp = httpx.get(_FRED_URL, params=params, timeout=30)
-        resp.raise_for_status()
+        try:
+            resp = httpx.get(_FRED_URL, params=params, timeout=30)
+            resp.raise_for_status()
+        except httpx.HTTPError as exc:
+            # Never let the underlying exception propagate: httpx.HTTPStatusError and
+            # httpx.RequestError both embed the full request URL (including api_key) in
+            # their message/repr, which would otherwise land in an uncaught-error log.
+            status = getattr(getattr(exc, "response", None), "status_code", "no response")
+            raise RuntimeError(
+                f"FRED API request failed for series {series_id!r} (status {status})"
+            ) from None
         obs = resp.json().get("observations", [])
         df = pd.DataFrame(obs)[["date", "value"]]
         # FRED encodes missing values as the string "." — coerce to NaN, values to float.
