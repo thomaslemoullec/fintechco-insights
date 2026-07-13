@@ -19,6 +19,13 @@ export const THEME = {
 /* --- Shared building blocks so every chart looks like one system. --- */
 const baseTextStyle = { color: THEME.ink, fontFamily: THEME.fontSans };
 
+/* Ordered clay→ink ramp for decades: color encodes an ordered category, never identity
+   alone — the legend carries identity (DESIGN.md: category legend, no color-only). */
+const DECADE_RAMP = [
+  "#EBC8BA", "#E0AC98", "#D49177", "#CC785C", "#B96048",
+  "#A14B36", "#833B29", "#602A1D", "#3A1E14",
+];
+
 const axisCommon = {
   axisLine: { lineStyle: { color: THEME.border } },
   axisTick: { show: false },
@@ -42,6 +49,57 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 function fmtMonth(iso) {
   const [y, m] = iso.split("-");
   return `${MONTHS[Number(m) - 1]} ${y}`;
+}
+
+// -----------------------------------------------------------------------------
+// Scatter of a relationship between two series (inflation vs. unemployment), one
+// ECharts series per decade so color encodes an ordered category and the legend
+// carries identity (DESIGN.md: never color-alone). Points at ~0.5 opacity so
+// overplotting reads; hover raises opacity and adds a surface ring.
+// -----------------------------------------------------------------------------
+export function scatterOption(points) {
+  const decades = [...new Set(points.map((p) => p.decade))].sort((a, b) => a - b);
+  const color = (decade) => DECADE_RAMP[decades.indexOf(decade) % DECADE_RAMP.length];
+  const series = decades.map((decade) => ({
+    name: `${decade}s`,
+    type: "scatter",
+    symbolSize: 8,
+    data: points
+      .filter((p) => p.decade === decade)
+      .map((p) => [p.unemployment, p.inflation, p.date]),
+    itemStyle: { color: color(decade), opacity: 0.5 },
+    emphasis: { itemStyle: { opacity: 1, borderColor: THEME.surface, borderWidth: 2 } },
+  }));
+
+  const valueAxis = (name, gap) => ({
+    type: "value",
+    name,
+    nameLocation: "middle",
+    nameGap: gap,
+    ...axisCommon,
+    axisLine: { show: false },
+    axisLabel: { ...axisCommon.axisLabel, formatter: "{value}%" },
+  });
+
+  return {
+    textStyle: baseTextStyle,
+    grid: { left: 52, right: 16, top: 12, bottom: 56 },
+    legend: {
+      bottom: 0,
+      icon: "circle",
+      itemWidth: 8,
+      itemHeight: 8,
+      textStyle: { color: THEME.muted, fontFamily: THEME.fontSans, fontSize: 11 },
+    },
+    tooltip: {
+      ...tooltipCommon,
+      formatter: (p) =>
+        `${fmtMonth(p.data[2])}<br/>Unemployment <b>${p.data[0]}%</b><br/>Inflation <b>${p.data[1]}%</b>`,
+    },
+    xAxis: valueAxis("Unemployment", 28),
+    yAxis: valueAxis("Inflation (YoY)", 40),
+    series,
+  };
 }
 
 // -----------------------------------------------------------------------------

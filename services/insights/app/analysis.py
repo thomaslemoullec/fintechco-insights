@@ -30,7 +30,10 @@ def _monthly(df: pd.DataFrame, col: str) -> pd.Series:
 def build_frame() -> pd.DataFrame:
     """Clean + align inflation and unemployment (and fed funds) onto one monthly index."""
     client = _client()
-    cpi = _monthly(client.get_series("CPIAUCSL"), "CPIAUCSL").interpolate(method="time")
+    # Missing CPI months are left as NaN and dropped downstream — never interpolated.
+    # Interpolating would pull a *later* month's figure back to fill an earlier gap
+    # (look-ahead leakage) and would contradict the client-facing methodology note.
+    cpi = _monthly(client.get_series("CPIAUCSL"), "CPIAUCSL")
     unrate = _monthly(client.get_series("UNRATE"), "UNRATE")
     fedfunds = _monthly(client.get_series("FEDFUNDS"), "FEDFUNDS")
 
@@ -45,6 +48,53 @@ def build_frame() -> pd.DataFrame:
 
 def as_of() -> str:
     return build_frame().index.max().date().isoformat()
+
+
+def phillips_view() -> dict:
+    """Client-facing inflation-vs-unemployment (Phillips) relationship, with disclosures.
+
+    Reuses ``build_frame`` (deterministic YoY inflation + monthly alignment). Each point
+    is a monthly (unemployment, inflation) pair tagged with its decade for the category
+    legend. Carries the full disclosure set (as-of / source / methodology / disclaimer)
+    required for a client-facing figure (CLAUDE.md > Model risk; SR 11-7).
+    """
+    frame = build_frame()[["unemployment", "inflation", "decade"]].dropna()
+    points = [
+        {
+            "date": d.date().isoformat(),
+            "unemployment": round(float(row.unemployment), 2),
+            "inflation": round(float(row.inflation), 2),
+            "decade": int(row.decade),
+        }
+        for d, row in frame.iterrows()
+    ]
+    return {
+        "as_of": frame.index.max().date().isoformat(),
+        "points": points,
+        "sources": [
+            "U.S. Bureau of Labor Statistics — CPI (CPIAUCSL), via FRED",
+            "U.S. Bureau of Labor Statistics — Unemployment rate (UNRATE), via FRED",
+        ],
+        "methodology": (
+            "Inflation is the year-over-year % change of the headline CPI index; "
+            "unemployment is the monthly civilian rate. Series are aligned on a monthly "
+            "index; months missing a published figure are dropped, not interpolated."
+        ),
+        "disclaimer": DISCLAIMER,
+        "decisions": [
+            {
+                "question": "Which CPI series?",
+                "choice": "Headline CPI (CPIAUCSL)",
+                "rationale": "matches the classic Phillips-curve framing used with clients",
+            },
+            {
+                "question": "How to handle missing CPI months?",
+                "choice": "Drop, do not interpolate",
+                "rationale": "never fabricate a published figure, or use later data to fill "
+                "an earlier gap",
+            },
+        ],
+    }
 
 
 def series_view(indicator_id: str) -> dict:

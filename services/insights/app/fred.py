@@ -36,9 +36,19 @@ class FredClient:
             df = self._fetch(series_id)
             self.data_dir.mkdir(parents=True, exist_ok=True)
             df.to_csv(cache, index=False)
+            source = "FRED API (live)"
         else:
             df = pd.read_csv(cache, parse_dates=["DATE"])
+            source = "cache (committed FRED fixture)"
 
+        # Provenance: every pull logs series id, row count, as-of (vintage) date and
+        # source so any figure can be traced back to its origin (CLAUDE.md > Data
+        # governance). Local stand-in for the SIEM audit stream in production.
+        as_of = df["DATE"].max().date().isoformat() if not df.empty else "n/a"
+        logger.info(
+            "fred_pull series=%s rows=%d as_of=%s source=%s",
+            series_id, len(df), as_of, source,
+        )
         return df
 
     def _fetch(self, series_id: str) -> pd.DataFrame:
@@ -51,8 +61,16 @@ class FredClient:
         import httpx
 
         params = {"series_id": series_id, "api_key": self.api_key, "file_type": "json"}
-        resp = httpx.get(_FRED_URL, params=params, timeout=30)
-        resp.raise_for_status()
+        try:
+            resp = httpx.get(_FRED_URL, params=params, timeout=30)
+            resp.raise_for_status()
+        except httpx.HTTPError as exc:
+            # The request URL carries the API key in its query string; httpx puts the
+            # full URL in the exception message. Re-raise a sanitised error so the key
+            # never reaches logs or stack traces (CWE-532/598).
+            raise RuntimeError(
+                f"FRED request for {series_id!r} failed: {type(exc).__name__}"
+            ) from None
         obs = resp.json().get("observations", [])
         df = pd.DataFrame(obs)[["date", "value"]]
         # FRED encodes missing values as the string "." — coerce to NaN, values to float.

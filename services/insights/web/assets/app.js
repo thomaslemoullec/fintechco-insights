@@ -5,9 +5,9 @@
 // instance lifecycle (dispose on route change, debounced resize).
 // =============================================================================
 import {
-  el, mount, statTile, indicatorCard, newsCard, emptyState, sectionHeader,
+  el, mount, statTile, indicatorCard, newsCard, emptyState, sectionHeader, viewMeta,
 } from "/assets/components.js";
-import { lineOption } from "/assets/charts.js";
+import { lineOption, scatterOption } from "/assets/charts.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -167,6 +167,34 @@ async function renderMacro(root) {
   }
   // Render after cards are in the DOM (ECharts needs measurable dimensions).
   for (const [node, option] of chartMounts) renderChart(node, option);
+
+  // --- Inflation vs. Unemployment: relationship scatter, colored by decade. ---
+  const relationSection = el("section", { className: "section" });
+  relationSection.appendChild(sectionHeader({
+    title: "Inflation vs. Unemployment",
+    sub: "Monthly pairs since the 1960s, colored by decade · is the Phillips tradeoff still holding?",
+  }));
+  const relationCard = el("div", { className: "card" });
+  const relationChartEl = el("div", {
+    className: "chart chart--tall",
+    "aria-label": "Scatter of unemployment versus inflation, colored by decade",
+  });
+  relationCard.appendChild(relationChartEl);
+  relationSection.appendChild(relationCard);
+  root.appendChild(relationSection);
+
+  try {
+    const phillips = await getJSON("/api/views/phillips-curve");
+    renderChart(relationChartEl, scatterOption(phillips.points));
+    relationSection.appendChild(viewMeta({
+      sources: phillips.sources,
+      methodology: phillips.methodology,
+      disclaimer: phillips.disclaimer,
+      decisions: phillips.decisions,
+    }));
+  } catch (e) {
+    console.warn("phillips-curve view unavailable:", e);
+  }
 }
 
 // --- Empty placeholder pages -------------------------------------------------
