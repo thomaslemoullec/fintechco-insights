@@ -11,7 +11,7 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# App code + committed synthetic fixtures (no real/personal data).
+# App code + committed FRED data cache (public, no real/personal data).
 COPY services ./services
 COPY scripts ./scripts
 

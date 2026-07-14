@@ -19,16 +19,6 @@
   --accent: #CC785C;
   --accent-strong: #B15C3F;
 
-  /* --- Decade categorical ramp (oldest→newest, warm→cool: time passing) --- */
-  --decade-1960: #B15C3F;
-  --decade-1970: #CC785C;
-  --decade-1980: #D9A066;
-  --decade-1990: #C9B458;
-  --decade-2000: #7FA47B;
-  --decade-2010: #5B8AA6;
-  --decade-2020: #3E5C76;
-  --decade-2030: #2E4257;
-
   /* --- Type --- */
   --font-serif: Georgia, "Times New Roman", serif;                       /* headings */
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; /* body */

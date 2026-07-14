@@ -87,8 +87,8 @@ resource "google_cloud_run_v2_service" "insights" {
         container_port = 8000
       }
 
-      # Public, non-personal economic data only; run against synthetic fixtures
-      # unless FRED_LIVE is explicitly enabled.
+      # Public, non-personal economic data only; serves from the committed FRED
+      # data cache unless FRED_LIVE is explicitly enabled.
       env {
         name  = "FRED_LIVE"
         value = "0"

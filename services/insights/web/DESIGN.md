@@ -60,23 +60,6 @@ CSS variables directly — keep the two in sync.
 | `--accent` | `#CC785C` | Clay accent — line series, active states |
 | `--accent-strong` | `#B15C3F` | Emphasis (wordmark, active nav, selected tab) |
 
-### Ordered time-category ramp
-
-An ordered **oldest → newest, warm → cool** categorical ramp to evoke time
-passing. Eight colors map to successive decades 1960s→2030s (`--decade-1960` …
-`--decade-2030`, and `THEME.decadeRamp` in JS):
-
-```
-1960s #B15C3F  1970s #CC785C  1980s #D9A066  1990s #C9B458
-2000s #7FA47B  2010s #5B8AA6  2020s #3E5C76  2030s #2E4257
-```
-
-`decadeColor(decade)` maps a decade to its color via `(decade - 1960) / 10`.
-Because the categories are **ordered** (time), a warm→cool progression is the
-correct encoding. Use this ramp only as an *ordered* time-category scale so a
-given period keeps one color across every chart — **color only ever encodes the
-ordered category**, never rank or series arbitrarily.
-
 ### Type
 
 - Headings: `Georgia, "Times New Roman", serif` — tight leading
@@ -108,9 +91,8 @@ ordered category**, never rank or series arbitrarily.
   surface color, clay text, and shadow. `role="tablist"`, `aria-selected`, and a
   visible focus ring. A reusable switch for toggling between options in a view.
 - **View metadata footer** (`.view-meta`) — Sources / Methodology / Disclaimer +
-  an expandable "Methodology decisions" list. **Compliance requirement:** any
-  client-facing figure must always render this disclosure footer, and it must be
-  visible (rendered once, outside any content-swap region).
+  an expandable "Methodology decisions" list, for views that disclose data
+  provenance (rendered once, outside any content-swap region).
 - **Empty state** (`.empty-state`) — dashed card with a mark, title and message
   for "Coming soon" pages.
 - **Error banner / inline note** — shown in place of a blank page if a fetch
@@ -139,9 +121,9 @@ ordered category**, never rank or series arbitrarily.
 - **Reuse the existing components** (`card`, `statTile`, `indicatorCard`,
   `newsCard`, `sectionHeader`, `segmented`, `emptyState`, `viewMeta`) rather than
   inventing new markup.
-- **Client-facing figures must render the `viewMeta` disclosure footer** (Sources
-  / Methodology / Disclaimer / methodology decisions) — this is a compliance
-  requirement.
+- The `viewMeta` component (Sources / Methodology / Disclaimer / methodology
+  decisions) is available for views that disclose data provenance — see the
+  root `CLAUDE.md` for when a disclosure footer is required.
 - **Add a `@pytest.mark.control` test** covering the view's data-governance /
   model-risk behaviour.
 - **Register a hash route** in the `app.js` router **and a nav link** in

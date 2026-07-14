@@ -29,7 +29,8 @@ every session and is expected to follow it.
 
 ## Data handling
 - The service uses **public, non-personal** economic data only. Do not introduce customer or
-  personal data into this service. Committed fixtures must be synthetic.
+  personal data into this service. Committed series data — real (cached from FRED) or
+  synthetic fallback fixtures — must never contain customer or personal data.
 
 ## Cloud / region
 - **US region only** for data at rest. Infra is Terraform under `infra/terraform/`.

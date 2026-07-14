@@ -6,8 +6,8 @@ description: Generate pytest tests for the Macro Insights service — especially
 # test-gen
 
 Write tests **first**, commit them, then implement. Tests live in
-`services/insights/tests/` and run against the committed **synthetic** FRED fixtures
-(`services/insights/app/data/*.csv`) — deterministic input, so results are reproducible.
+`services/insights/tests/` and run against the committed FRED data cache
+(`services/insights/app/data/*.csv`) — fixed input, so results are reproducible.
 
 ## Always include these control tests
 Mark them `@pytest.mark.control` so `make test-control` can assert they fail before the fix.
@@ -26,8 +26,8 @@ Mark them `@pytest.mark.control` so `make test-control` can assert they fail bef
 
 ## Conventions
 - One behaviour per test; clear names
-  (`test_phillips_view_carries_asof_source_and_disclaimer`).
+  (`test_new_view_carries_asof_source_and_disclaimer`).
 - Assert explicitly — status codes for API tests, exact fields for view/provenance tests.
-- Prefer the synthetic fixtures; do not hit the live FRED API in tests.
+- Prefer the cached fixtures; do not hit the live FRED API in tests.
 - Do not weaken a test to make it pass — fix the code. Commit tests before implementation
   so any later change to a test is visible in the diff.

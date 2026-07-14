@@ -8,8 +8,8 @@ for research and client discussions.
   exploratory analysis, and a JSON API.
 - **Frontend:** a static dashboard (`services/insights/web/`) served by the same FastAPI
   process. Follows the design system in [`services/insights/web/DESIGN.md`](services/insights/web/DESIGN.md).
-- **Data:** economic series from FRED. Until API access is provisioned, the service runs on
-  committed **synthetic fixtures** (`scripts/gen_fixtures.py`) — no real or personal data.
+- **Data:** economic series from FRED, cached as committed CSVs (`services/insights/app/data/`)
+  — public, non-personal data only. `scripts/gen_fixtures.py` is an offline synthetic fallback.
 
 ## Run
 

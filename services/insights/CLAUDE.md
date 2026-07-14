@@ -16,7 +16,7 @@ done) live in the root [`CLAUDE.md`](../../CLAUDE.md). This file covers only ser
 - `app/fred.py` — data source layer; key from env, provenance logging on every pull.
 - `app/analysis.py` — cleaning / alignment / exploratory analysis (deterministic).
 - `app/indicators.py` — indicator catalogue with source/units/frequency metadata.
-- `app/data/*.csv` — synthetic FRED fixtures (committed; no real data).
+- `app/data/*.csv` — cached FRED series data (real, public; committed for reproducibility).
 - `web/` — static dashboard; design system documented in `web/DESIGN.md`.
 - `tests/` — pytest, including `@pytest.mark.control` data-governance / model-risk tests.
 

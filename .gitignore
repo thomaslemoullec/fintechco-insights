@@ -4,7 +4,6 @@ _internal/
 
 # --- Claude Code project-local (personal, not shared) ---
 .claude/settings.local.json
-.claude/hooks/persona.sh
 
 # --- Python ---
 .venv/
@@ -26,5 +25,6 @@ infra/terraform/.terraform/
 *.tfstate.*
 .terraform.lock.hcl
 
-# NOTE: services/insights/app/data/*.csv are synthetic fixtures and ARE committed
-# (they contain no real or personal data). See scripts/gen_fixtures.py.
+# NOTE: services/insights/app/data/*.csv are cached FRED series data and ARE committed
+# (public economic data, no real or personal data). scripts/gen_fixtures.py is the
+# offline synthetic fallback if the cache is ever missing.
