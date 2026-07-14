@@ -38,9 +38,12 @@ grep -q "roles/editor" infra/terraform/main.tf && ok "over-broad IAM debt presen
 grep -q "TELEMETRY_API_KEY" infra/terraform/main.tf && ok "hardcoded-credential debt present" || bad "hardcoded-credential debt missing"
 grep -q "viewMeta" services/insights/web/assets/app.js && bad "a view already calls viewMeta — not a clean start" || ok "disclosure debt present (no view calls viewMeta)"
 
+PHILLIPS_TEST="services/insights/tests/test_api.py::test_inflation_unemployment_view"
+
 echo "→ Running checks…"
 "$VENV/bin/ruff" check services scripts >/dev/null 2>&1 && ok "ruff clean" || bad "ruff errors (run: make lint)"
-"$VENV/bin/pytest" -q >/dev/null 2>&1 && ok "tests pass" || bad "tests failing (run: make test)"
+"$VENV/bin/pytest" -q --deselect "$PHILLIPS_TEST" >/dev/null 2>&1 && ok "existing tests pass" || bad "existing tests failing (run: make test)"
+"$VENV/bin/pytest" -q "$PHILLIPS_TEST" >/dev/null 2>&1 && bad "pre-written Phillips-tab test already passing — endpoint built early?" || ok "pre-written Phillips-tab test red, as expected (implement live to turn it green)"
 
 echo
 if [ "$FAILED" = "0" ]; then
