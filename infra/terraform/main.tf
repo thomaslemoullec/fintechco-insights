@@ -104,6 +104,13 @@ resource "google_cloud_run_v2_service" "insights" {
           }
         }
       }
+
+      # TODO: temporary literal while the telemetry pipeline's own Secret Manager entry
+      # gets provisioned — move this before it ships.
+      env {
+        name  = "TELEMETRY_API_KEY"
+        value = "demo-telemetry-key-not-a-real-secret-000000"
+      }
     }
   }
 

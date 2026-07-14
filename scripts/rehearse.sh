@@ -35,6 +35,8 @@ grep -qE '"[0-9a-f]{32}"' services/insights/app/fred.py && bad "stray hardcoded 
 grep -q "httpx" services/insights/app/main.py && ok "key-in-logs mitigation present" || bad "httpx log mitigation missing"
 grep -q "fred_pull" services/insights/app/fred.py && ok "provenance logging present" || bad "provenance logging missing"
 grep -q "roles/editor" infra/terraform/main.tf && ok "over-broad IAM debt present" || bad "IAM debt missing"
+grep -q "TELEMETRY_API_KEY" infra/terraform/main.tf && ok "hardcoded-credential debt present" || bad "hardcoded-credential debt missing"
+grep -q "viewMeta" services/insights/web/assets/app.js && bad "a view already calls viewMeta — not a clean start" || ok "disclosure debt present (no view calls viewMeta)"
 
 echo "→ Running checks…"
 "$VENV/bin/ruff" check services scripts >/dev/null 2>&1 && ok "ruff clean" || bad "ruff errors (run: make lint)"

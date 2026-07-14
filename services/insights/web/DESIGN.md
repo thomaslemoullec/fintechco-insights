@@ -141,5 +141,4 @@ shared scales) to compare groups.
 - Focus-visible ring on the toggle and nav; `role`/`aria-selected` on segments;
   `aria-current` on the active nav link; `aria-label`s on chart containers updated
   per view.
-- Colors are drawn from the prescribed token palette; the ordered warm→cool ramp
-  is used as an *ordered* scale (its intended purpose).
+- Colors are always drawn from the prescribed token palette — never an ad-hoc value.

@@ -284,7 +284,6 @@ a { color: inherit; text-decoration: none; }
    ========================================================================== */
 .chart { width: 100%; height: 160px; }         /* compact line charts */
 .chart--tall { height: 480px; }                /* tall chart canvas */
-.chart--strip { height: 200px; }               /* correlation strip */
 
 .chart-toolbar {
   display: flex;

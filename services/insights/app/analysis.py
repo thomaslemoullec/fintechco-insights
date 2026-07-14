@@ -63,4 +63,5 @@ def series_view(indicator_id: str) -> dict:
         "indicator": ind.to_dict(),
         "as_of": frame.index.max().date().isoformat(),
         "points": points,
+        "disclaimer": DISCLAIMER,
     }
