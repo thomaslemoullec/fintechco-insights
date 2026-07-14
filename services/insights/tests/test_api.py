@@ -20,3 +20,8 @@ def test_series_ok_and_unknown(client):
     assert ok.status_code == 200
     assert ok.json()["as_of"] and ok.json()["points"]
     assert client.get("/api/series/NOPE").status_code == 404
+
+
+def test_phillips_endpoint_ok(client):
+    body = client.get("/api/phillips").json()
+    assert {"as_of", "sources", "disclaimer", "points", "decades"} <= body.keys()

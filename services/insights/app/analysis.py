@@ -47,6 +47,39 @@ def as_of() -> str:
     return build_frame().index.max().date().isoformat()
 
 
+def phillips_view() -> dict:
+    """Inflation vs. unemployment, combined for the Phillips-curve view.
+
+    Correlation/slope are computed per calendar decade (>=24 monthly observations) rather
+    than over the full history: a single full-sample statistic would conflate regime shifts
+    (e.g. 1970s stagflation) into one misleading number (CLAUDE.md > No unsupported claims).
+    """
+    frame = build_frame()
+    points = [
+        {"date": d.date().isoformat(), "inflation": round(float(i), 2), "unemployment": round(float(u), 2)}
+        for d, i, u in zip(frame.index, frame["inflation"], frame["unemployment"])
+    ]
+
+    decades = []
+    for decade, group in frame.groupby("decade"):
+        if len(group) < 24:
+            continue
+        corr = group["inflation"].corr(group["unemployment"])
+        slope = group["unemployment"].cov(group["inflation"]) / group["unemployment"].var()
+        decades.append(
+            {"decade": int(decade), "n": int(len(group)), "corr": round(float(corr), 2), "slope": round(float(slope), 2)}
+        )
+
+    sources = sorted({INDICATORS["INFLATION"].source, INDICATORS["UNRATE"].source})
+    return {
+        "as_of": frame.index.max().date().isoformat(),
+        "sources": sources,
+        "disclaimer": DISCLAIMER,
+        "points": points,
+        "decades": decades,
+    }
+
+
 def series_view(indicator_id: str) -> dict:
     ind = INDICATORS.get(indicator_id)
     if ind is None:

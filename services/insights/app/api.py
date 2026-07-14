@@ -26,3 +26,8 @@ def get_series(indicator_id: str) -> dict:
         return analysis.series_view(indicator_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=f"unknown indicator {indicator_id!r}") from exc
+
+
+@router.get("/phillips")
+def get_phillips() -> dict:
+    return analysis.phillips_view()

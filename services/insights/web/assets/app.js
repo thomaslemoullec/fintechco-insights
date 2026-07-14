@@ -5,9 +5,9 @@
 // instance lifecycle (dispose on route change, debounced resize).
 // =============================================================================
 import {
-  el, mount, statTile, indicatorCard, newsCard, emptyState, sectionHeader,
+  el, mount, statTile, indicatorCard, newsCard, emptyState, sectionHeader, viewMeta,
 } from "/assets/components.js";
-import { lineOption } from "/assets/charts.js";
+import { lineOption, phillipsLineOption } from "/assets/charts.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -169,6 +169,64 @@ async function renderMacro(root) {
   for (const [node, option] of chartMounts) renderChart(node, option);
 }
 
+// --- Financial Indicators → Macro → Inflation vs. Unemployment. --------------
+async function renderPhillips(root) {
+  const section = el("section", { className: "section" });
+  section.appendChild(sectionHeader({
+    title: "Inflation vs. Unemployment",
+    sub: "Is the Phillips-curve tradeoff still holding? · U.S. series via FRED",
+  }));
+
+  const chartEl = el("div", { className: "chart" });
+  section.appendChild(el("div", { className: "card" }, [chartEl]));
+
+  const view = await getJSON("/api/phillips");
+  root.appendChild(section);
+  renderChart(chartEl, phillipsLineOption(view.points));
+
+  const table = el("table", { className: "decade-table" }, [
+    el("thead", {}, [
+      el("tr", {}, [
+        el("th", { text: "Decade" }),
+        el("th", { text: "Correlation" }),
+        el("th", { text: "Slope" }),
+        el("th", { text: "Months" }),
+      ]),
+    ]),
+    el("tbody", {}, view.decades.map((d) =>
+      el("tr", {}, [
+        el("td", { text: `${d.decade}s` }),
+        el("td", { text: d.corr.toFixed(2) }),
+        el("td", { text: d.slope.toFixed(2) }),
+        el("td", { text: String(d.n) }),
+      ]),
+    )),
+  ]);
+  section.appendChild(table);
+
+  section.appendChild(viewMeta({
+    sources: view.sources,
+    methodology: "Inflation = year-over-year % change of the CPI index (CPIAUCSL); "
+      + "unemployment = civilian unemployment rate (UNRATE). Correlation and slope are computed "
+      + "within each calendar decade (decades with fewer than 24 monthly observations are "
+      + "excluded), rather than over the full history, to avoid conflating regime shifts (e.g. "
+      + "1970s stagflation) into one misleading statistic.",
+    disclaimer: view.disclaimer,
+    decisions: [
+      {
+        question: "Chart form for the inflation/unemployment relationship?",
+        choice: "Dual-line time series",
+        rationale: "matches the existing single-series chart pattern and reads more clearly as a trend than a scatter.",
+      },
+      {
+        question: "How much statistical framing to add?",
+        choice: "By-decade correlation and slope, not a single full-history statistic",
+        rationale: "a naive full-sample correlation is known to be unstable across regimes and would risk an unsupported claim.",
+      },
+    ],
+  }));
+}
+
 // --- Empty placeholder pages -------------------------------------------------
 function renderComingSoon(root, title, message) {
   root.appendChild(el("section", { className: "section" }, [emptyState({ title, message })]));
@@ -186,6 +244,7 @@ const renderMarkets = (root) =>
 const ROUTES = {
   "#/home": { title: "Home", render: renderHome },
   "#/indicators/macro": { title: "Financial Indicators · Macro", render: renderMacro },
+  "#/indicators/macro/phillips": { title: "Financial Indicators · Macro · Inflation vs. Unemployment", render: renderPhillips },
   "#/indicators/micro": { title: "Financial Indicators · Micro", render: renderMicro },
   "#/trends": { title: "Trends", render: renderTrends },
   "#/markets": { title: "Markets", render: renderMarkets },

@@ -98,3 +98,71 @@ export function lineOption(series, indicator) {
     ],
   };
 }
+
+// -----------------------------------------------------------------------------
+// Dual-line chart: inflation vs. unemployment over time (Phillips-curve view).
+// Two series always need a legend — color alone can't carry series identity.
+// -----------------------------------------------------------------------------
+export function phillipsLineOption(points) {
+  const dates = points.map((p) => p.date);
+  const inflation = points.map((p) => p.inflation);
+  const unemployment = points.map((p) => p.unemployment);
+  return {
+    textStyle: baseTextStyle,
+    grid: { left: 40, right: 12, top: 40, bottom: 24 },
+    legend: {
+      top: 0,
+      left: 0,
+      icon: "roundRect",
+      itemWidth: 12,
+      itemHeight: 4,
+      textStyle: { color: THEME.muted, fontFamily: THEME.fontSans, fontSize: 12 },
+    },
+    tooltip: {
+      ...tooltipCommon,
+      trigger: "axis",
+      axisPointer: { type: "line", lineStyle: { color: THEME.border } },
+      formatter: (params) =>
+        [fmtMonth(params[0].axisValue)]
+          .concat(params.map((p) => `<b>${p.data}%</b> ${p.seriesName}`))
+          .join("<br/>"),
+    },
+    xAxis: {
+      type: "category",
+      data: dates,
+      boundaryGap: false,
+      ...axisCommon,
+      splitLine: { show: false },
+      axisLabel: {
+        ...axisCommon.axisLabel,
+        formatter: (v) => v.slice(0, 4),
+        interval: (i, v) => v.endsWith("-01-01") && Number(v.slice(0, 4)) % 20 === 0,
+      },
+    },
+    yAxis: {
+      type: "value",
+      scale: true,
+      ...axisCommon,
+      axisLine: { show: false },
+      axisLabel: { ...axisCommon.axisLabel, formatter: "{value}%" },
+    },
+    series: [
+      {
+        name: "Inflation (CPI, YoY)",
+        type: "line",
+        data: inflation,
+        showSymbol: false,
+        smooth: false,
+        lineStyle: { color: THEME.accent, width: 2 },
+      },
+      {
+        name: "Unemployment rate",
+        type: "line",
+        data: unemployment,
+        showSymbol: false,
+        smooth: false,
+        lineStyle: { color: THEME.accentStrong, width: 2, type: "dashed" },
+      },
+    ],
+  };
+}
