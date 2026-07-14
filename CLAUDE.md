@@ -48,6 +48,10 @@ every session and is expected to follow it.
   (see [`services/insights/CLAUDE.md`](services/insights/CLAUDE.md)).
 - `infra/terraform/` — cloud infra, owned separately from any one service's app code.
 
+## Shipping changes
+- Never commit directly to `main`. "Create a PR" means: commit on a feature branch, push it,
+  then open the PR against `main` — do this without being told each step.
+
 ## Definition of done
 A change is done only when **tests pass + a reviewer has approved + security/IaC scans are
 green**. Write tests first for anything that produces a **client-facing figure** or touches
