@@ -6,13 +6,8 @@
 // =============================================================================
 import {
   el, mount, statTile, indicatorCard, newsCard, emptyState, sectionHeader,
-  segmented, viewMeta,
 } from "/assets/components.js";
-// Note: smallMultiplesOption (treatment #3) is built in charts.js per spec but is
-// not part of the two-way A/B toggle, so it is not imported here.
-import {
-  lineOption, scatterByDecadeOption, thenVsNowOption, correlationStripOption,
-} from "/assets/charts.js";
+import { lineOption } from "/assets/charts.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -49,7 +44,7 @@ function renderChart(node, option) {
     chart = echarts.init(node, null, { renderer: "canvas" });
     instances.add(chart);
   }
-  chart.setOption(option, true); // notMerge so treatment swaps are clean
+  chart.setOption(option, true); // notMerge so swaps are clean
   return chart;
 }
 
@@ -78,63 +73,17 @@ function inlineNote(text) {
 }
 
 // -----------------------------------------------------------------------------
-// "Data as of" pill (top bar). Sourced from the phillips endpoint per spec.
+// "Data as of" pill (top bar). Derived from the UNRATE series' as-of date.
 // Fetched once at boot; failure is non-fatal (pill just stays hidden).
 // -----------------------------------------------------------------------------
 async function initAsOfPill() {
   try {
-    const view = await getJSON("/api/views/phillips");
-    $("asof-date").textContent = view.as_of;
+    const series = await getJSON("/api/series/UNRATE");
+    $("asof-date").textContent = series.as_of;
     $("asof-pill").hidden = false;
   } catch (e) {
     console.warn("as-of pill unavailable:", e);
   }
-}
-
-// =============================================================================
-// A/B harness for the Phillips view.
-// =============================================================================
-const AB_KEY = "phillips_ab";
-
-/**
- * Assign the user to a variant. Persisted in localStorage so the choice is
- * stable across reloads; if absent, pick one via a stable hash of the browser's
- * assignment seed (which is itself persisted the first time).
- */
-function assignVariant(variants) {
-  let v = null;
-  try {
-    v = localStorage.getItem(AB_KEY);
-  } catch { /* storage may be blocked; fall through to a fresh pick */ }
-  if (variants.includes(v)) return v;
-
-  // Stable pseudo-random first assignment, then persisted so it never changes.
-  let seed;
-  try {
-    seed = Number(localStorage.getItem(AB_KEY + "_seed"));
-    if (!Number.isFinite(seed) || seed === 0) {
-      seed = Date.now() % 100000;
-      localStorage.setItem(AB_KEY + "_seed", String(seed));
-    }
-  } catch {
-    seed = Date.now() % 100000;
-  }
-  v = variants[seed % variants.length];
-  try { localStorage.setItem(AB_KEY, v); } catch { /* ignore */ }
-  return v;
-}
-
-function setVariant(v) {
-  try { localStorage.setItem(AB_KEY, v); } catch { /* ignore */ }
-}
-
-/** Log a variant impression to the audit trail. Best-effort; never blocks UI. */
-function logImpression(variant) {
-  fetch("/api/ab/event", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ variant, view: "phillips" }),
-  }).catch((e) => console.warn("ab/event log failed:", e));
 }
 
 // =============================================================================
@@ -184,9 +133,8 @@ async function renderHome(root) {
   mount(brief, news.map(newsCard));
 }
 
-// --- Financial Indicators → Macro: indicator cards + the Phillips view. -------
+// --- Financial Indicators → Macro: indicator cards. --------------------------
 async function renderMacro(root) {
-  // --- 1) Indicator cards (compact line chart + latest stat) ---
   const cardsSection = el("section", { className: "section" });
   cardsSection.appendChild(sectionHeader({
     title: "Key indicators",
@@ -219,86 +167,6 @@ async function renderMacro(root) {
   }
   // Render after cards are in the DOM (ECharts needs measurable dimensions).
   for (const [node, option] of chartMounts) renderChart(node, option);
-
-  // --- 2) Phillips view (the centerpiece) ---
-  await renderPhillips(root);
-}
-
-/**
- * Phillips view. A/B tested between two chart treatments; the compliance
- * metadata footer is rendered ONCE outside the swap region so it is always
- * present on both variants.
- */
-async function renderPhillips(root) {
-  const view = await getJSON("/api/views/phillips");
-  const variants = view.ab_variants || ["by-decade", "then-vs-now"];
-
-  const section = el("section", { className: "section" });
-
-  // Header + summary lede.
-  section.appendChild(sectionHeader({ title: view.title }));
-  section.appendChild(el("p", { className: "lede", text: view.summary }));
-
-  // Correlation-by-decade mini strip.
-  const stripCard = el("div", { className: "card" }, [
-    sectionHeader({
-      title: "Correlation by decade",
-      sub: "Pearson correlation of inflation vs. unemployment, per decade — a strong early negative relationship decays toward zero.",
-      tight: true,
-    }),
-  ]);
-  const stripChart = el("div", { className: "chart chart--strip", role: "img", "aria-label": "Correlation by decade bar chart" });
-  stripCard.appendChild(stripChart);
-  section.appendChild(stripCard);
-
-  // Main A/B card: labelled toggle + swap-able chart.
-  const VARIANT_META = {
-    "by-decade": { label: "Variant A · by-decade", caption: "Each point is one month, colored by decade, with a light per-decade fit line.", build: scatterByDecadeOption },
-    "then-vs-now": { label: "Variant B · then-vs-now", caption: `The ${view.then.decade}s vs the ${view.now.decade}s — two clouds and their fitted lines; one steep, one flat.`, build: thenVsNowOption },
-  };
-
-  let current = assignVariant(variants);
-  if (!VARIANT_META[current]) current = variants[0];
-
-  const caption = el("p", { className: "chart-caption" });
-  const chartNode = el("div", { className: "chart chart--tall", role: "img", "aria-label": "Phillips curve chart" });
-
-  const draw = (variant, { log } = { log: false }) => {
-    current = variant;
-    const meta = VARIANT_META[variant] || VARIANT_META[variants[0]];
-    caption.textContent = meta.caption;
-    chartNode.setAttribute("aria-label", `Phillips curve — ${meta.label}`);
-    renderChart(chartNode, meta.build(view));
-    if (log) logImpression(variant);
-  };
-
-  const toggle = segmented({
-    ariaLabel: "Chart variant",
-    options: variants.filter((v) => VARIANT_META[v]).map((v) => ({ id: v, label: VARIANT_META[v].label })),
-    selected: current,
-    onChange: (v) => { setVariant(v); draw(v, { log: true }); }, // manual switch re-renders + re-logs
-  });
-
-  const phillipsCard = el("div", { className: "card phillips-card" }, [
-    el("div", { className: "chart-toolbar" }, [toggle, caption]),
-    chartNode,
-  ]);
-  section.appendChild(phillipsCard);
-
-  // Compliance metadata footer — rendered once, outside the A/B swap, so it is
-  // ALWAYS visible regardless of which variant is shown.
-  section.appendChild(viewMeta({
-    sources: view.sources,
-    methodology: view.methodology,
-    disclaimer: view.disclaimer,
-    decisions: view.decisions,
-  }));
-
-  root.appendChild(section);
-
-  // Render charts now that nodes are in the DOM.
-  renderChart(stripChart, correlationStripOption(view.decade_stats));
-  draw(current, { log: true }); // initial impression logged on load
 }
 
 // --- Empty placeholder pages -------------------------------------------------

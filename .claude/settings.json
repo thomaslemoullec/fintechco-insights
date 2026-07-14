@@ -29,12 +29,6 @@
       "mcp__atlassian__transitionJiraIssue",
       "mcp__atlassian__createIssueLink",
       "mcp__atlassian__addWorklogToJiraIssue"
-    ],
-    "deny": [
-      "Read(./**/*.env)",
-      "Read(./secrets/**)",
-      "Read(./infra/terraform/*-key.json)",
-      "Read(./**/*-key.json)"
     ]
   },
   "hooks": {

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FinTechCo · Macro Insights</title>
-  <meta name="description" content="Internal economic-indicators dashboard — inflation, unemployment and the federal funds rate, plus the Phillips-curve relationship over time." />
+  <meta name="description" content="Internal economic-indicators dashboard — inflation, unemployment and the federal funds rate." />
   <link rel="stylesheet" href="/assets/styles.css" />
 </head>
 <body>
@@ -42,7 +42,7 @@
     <main class="main">
       <div class="topbar">
         <h1 class="topbar__title" id="page-title">Home</h1>
-        <!-- "Data as of" pill; populated from /api/views/phillips as_of. -->
+        <!-- "Data as of" pill; populated from an indicator series (/api/series/UNRATE) as_of. -->
         <div class="asof-pill" id="asof-pill" hidden>
           Data as of <span id="asof-date">—</span>
         </div>

@@ -36,7 +36,7 @@ test-control: ## Run only the data-governance / model-risk control tests
 lint: ## Lint the Python code
 	$(VENV)/bin/ruff check services scripts
 
-rehearse: $(VENV) ## Reset to demo-start and verify the rehearsal start-state
+rehearse: $(VENV) ## Reset to main and verify the rehearsal start-state
 	@bash scripts/rehearse.sh
 
 jira-reset: ## Reset the demo Jira ticket to To Do (needs JIRA_EMAIL + JIRA_API_TOKEN)

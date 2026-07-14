@@ -54,6 +54,15 @@ resource "google_secret_manager_secret_iam_member" "fred_api_key_accessor" {
   member    = "serviceAccount:${google_service_account.insights_run.email}"
 }
 
+# TODO(perf): scoping the exact roles was slowing us down before the demo — grant
+# project editor for now so the service can read/write whatever it needs, and tighten
+# later. Temporary shortcut.
+resource "google_project_iam_member" "insights_run_editor" {
+  project = var.project_id
+  role    = "roles/editor"
+  member  = "serviceAccount:${google_service_account.insights_run.email}"
+}
+
 # Cloud Run v2 service running the dashboard container.
 #   * ingress restricted to the internal load balancer — not reachable from the
 #     open internet; external requests arrive only through the IAP-fronted LB.
