@@ -5,9 +5,9 @@
 // instance lifecycle (dispose on route change, debounced resize).
 // =============================================================================
 import {
-  el, mount, statTile, indicatorCard, newsCard, emptyState, sectionHeader,
+  el, mount, statTile, indicatorCard, newsCard, emptyState, sectionHeader, viewMeta,
 } from "/assets/components.js";
-import { lineOption } from "/assets/charts.js";
+import { lineOption, scatterOption } from "/assets/charts.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -133,6 +133,21 @@ async function renderHome(root) {
   mount(brief, news.map(newsCard));
 }
 
+// Join inflation and unemployment series by date (only dates present in both) and
+// derive the decade bucket — mirrors the decade formula in app/analysis.py so the
+// two stay consistent.
+function buildPhillipsPoints(inflationSeries, unemploymentSeries) {
+  const unemploymentByDate = new Map(unemploymentSeries.points.map((p) => [p.date, p.value]));
+  const points = [];
+  for (const p of inflationSeries.points) {
+    const u = unemploymentByDate.get(p.date);
+    if (u == null) continue;
+    const decade = Math.floor(Number(p.date.slice(0, 4)) / 10) * 10;
+    points.push({ x: u, y: p.value, date: p.date, decade });
+  }
+  return points;
+}
+
 // --- Financial Indicators → Macro: indicator cards. --------------------------
 async function renderMacro(root) {
   const cardsSection = el("section", { className: "section" });
@@ -167,6 +182,31 @@ async function renderMacro(root) {
   }
   // Render after cards are in the DOM (ECharts needs measurable dimensions).
   for (const [node, option] of chartMounts) renderChart(node, option);
+
+  // --- Inflation vs. unemployment (Phillips curve) ---------------------------
+  const phillipsSection = el("section", { className: "section" });
+  phillipsSection.appendChild(sectionHeader({
+    title: "Inflation vs. unemployment",
+    sub: "Does the Phillips-curve tradeoff still hold? Each point is one month.",
+  }));
+  const phillipsChartEl = el("div", { className: "chart chart--tall" });
+  phillipsSection.appendChild(el("div", { className: "card" }, [phillipsChartEl]));
+  root.appendChild(phillipsSection);
+
+  const points = buildPhillipsPoints(seriesById.INFLATION, seriesById.UNRATE);
+  renderChart(phillipsChartEl, scatterOption(points, {
+    xLabel: "Unemployment", yLabel: "Inflation (YoY)",
+  }));
+
+  phillipsSection.appendChild(viewMeta({
+    sources: [...new Set([
+      seriesById.INFLATION.indicator.source,
+      seriesById.UNRATE.indicator.source,
+    ])],
+    methodology: "Each point pairs a month's unemployment rate with year-over-year "
+      + "CPI inflation for that same month; point color marks the decade.",
+    disclaimer: seriesById.INFLATION.disclaimer,
+  }));
 }
 
 // --- Empty placeholder pages -------------------------------------------------

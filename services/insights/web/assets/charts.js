@@ -14,7 +14,24 @@ export const THEME = {
   accent: "#CC785C",
   accentStrong: "#B15C3F",
   fontSans: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+  // Ordered oldest→newest, warm→cool decade ramp — mirrors the --decade-* custom
+  // properties in styles.css. Ordered category scale only; never used for identity.
+  decadeRamp: {
+    1960: "#B15C3F",
+    1970: "#CC785C",
+    1980: "#D9A066",
+    1990: "#C9B458",
+    2000: "#7FA47B",
+    2010: "#5B8AA6",
+    2020: "#3E5C76",
+    2030: "#2E4257",
+  },
 };
+
+/** Map a decade (e.g. 1990) to its ramp color, falling back to the plain accent. */
+export function decadeColor(decade) {
+  return THEME.decadeRamp[decade] || THEME.accent;
+}
 
 /* --- Shared building blocks so every chart looks like one system. --- */
 const baseTextStyle = { color: THEME.ink, fontFamily: THEME.fontSans };
@@ -96,5 +113,75 @@ export function lineOption(series, indicator) {
         },
       },
     ],
+  };
+}
+
+// -----------------------------------------------------------------------------
+// Scatter for a relationship between two series (e.g. inflation vs. unemployment),
+// with points colored by an ordered category (decade). One series per decade so
+// ECharts renders a category legend — color never carries identity alone.
+// -----------------------------------------------------------------------------
+export function scatterOption(points, { xLabel, yLabel } = {}) {
+  // The decade ramp is only defined 1960s onward (THEME.decadeRamp); bucket anything
+  // earlier into one "Pre-1960s" legend entry rather than let unrelated pre-1960
+  // decades collide on the same fallback color.
+  const rampFloor = 1960;
+  const bucketed = points.map((p) => ({
+    ...p,
+    bucket: p.decade < rampFloor ? rampFloor : p.decade,
+    label: p.decade < rampFloor ? "Pre-1960s" : `${p.decade}s`,
+  }));
+  const buckets = [...new Map(bucketed.map((p) => [p.label, p.bucket])).entries()]
+    .sort((a, b) => a[1] - b[1]);
+  const series = buckets.map(([label, bucket]) => ({
+    name: label,
+    type: "scatter",
+    symbolSize: 8,
+    data: bucketed
+      .filter((p) => p.label === label)
+      .map((p) => ({ value: [p.x, p.y], date: p.date })),
+    itemStyle: { color: decadeColor(bucket), opacity: 0.5 },
+    emphasis: {
+      itemStyle: { opacity: 1, borderColor: THEME.surface, borderWidth: 2 },
+    },
+  }));
+
+  return {
+    textStyle: baseTextStyle,
+    grid: { left: 48, right: 24, top: 12, bottom: 56 },
+    legend: {
+      bottom: 0,
+      icon: "circle",
+      itemWidth: 8,
+      itemHeight: 8,
+      textStyle: { color: THEME.muted, fontFamily: THEME.fontSans, fontSize: 11 },
+    },
+    tooltip: {
+      ...tooltipCommon,
+      trigger: "item",
+      formatter: (p) =>
+        `${fmtMonth(p.data.date)}<br/>${xLabel || "x"}: <b>${p.data.value[0]}</b>%`
+        + `<br/>${yLabel || "y"}: <b>${p.data.value[1]}</b>%`,
+    },
+    xAxis: {
+      type: "value",
+      name: xLabel,
+      nameLocation: "middle",
+      nameGap: 28,
+      scale: true,
+      ...axisCommon,
+      axisLabel: { ...axisCommon.axisLabel, formatter: "{value}%" },
+    },
+    yAxis: {
+      type: "value",
+      name: yLabel,
+      nameLocation: "middle",
+      nameGap: 36,
+      scale: true,
+      ...axisCommon,
+      axisLine: { show: false },
+      axisLabel: { ...axisCommon.axisLabel, formatter: "{value}%" },
+    },
+    series,
   };
 }
